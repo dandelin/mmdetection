@@ -9,26 +9,29 @@ from ..utils import bias_init_with_prob, ConvModule
 
 @HEADS.register_module
 class RetinaHead(AnchorHead):
-
-    def __init__(self,
-                 num_classes,
-                 in_channels,
-                 stacked_convs=4,
-                 octave_base_scale=4,
-                 scales_per_octave=3,
-                 conv_cfg=None,
-                 norm_cfg=None,
-                 **kwargs):
+    def __init__(
+        self,
+        num_classes,
+        in_channels,
+        stacked_convs=4,
+        octave_base_scale=4,
+        scales_per_octave=3,
+        conv_cfg=None,
+        norm_cfg=None,
+        **kwargs
+    ):
         self.stacked_convs = stacked_convs
         self.octave_base_scale = octave_base_scale
         self.scales_per_octave = scales_per_octave
         self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
         octave_scales = np.array(
-            [2**(i / scales_per_octave) for i in range(scales_per_octave)])
+            [2 ** (i / scales_per_octave) for i in range(scales_per_octave)]
+        )
         anchor_scales = octave_scales * octave_base_scale
         super(RetinaHead, self).__init__(
-            num_classes, in_channels, anchor_scales=anchor_scales, **kwargs)
+            num_classes, in_channels, anchor_scales=anchor_scales, **kwargs
+        )
 
     def _init_layers(self):
         self.relu = nn.ReLU(inplace=True)
@@ -44,7 +47,9 @@ class RetinaHead(AnchorHead):
                     stride=1,
                     padding=1,
                     conv_cfg=self.conv_cfg,
-                    norm_cfg=self.norm_cfg))
+                    norm_cfg=self.norm_cfg,
+                )
+            )
             self.reg_convs.append(
                 ConvModule(
                     chn,
@@ -53,14 +58,15 @@ class RetinaHead(AnchorHead):
                     stride=1,
                     padding=1,
                     conv_cfg=self.conv_cfg,
-                    norm_cfg=self.norm_cfg))
+                    norm_cfg=self.norm_cfg,
+                )
+            )
         self.retina_cls = nn.Conv2d(
-            self.feat_channels,
-            self.num_anchors * self.cls_out_channels,
-            3,
-            padding=1)
+            self.feat_channels, self.num_anchors * self.cls_out_channels, 3, padding=1
+        )
         self.retina_reg = nn.Conv2d(
-            self.feat_channels, self.num_anchors * 4, 3, padding=1)
+            self.feat_channels, self.num_anchors * 4, 3, padding=1
+        )
 
     def init_weights(self):
         for m in self.cls_convs:

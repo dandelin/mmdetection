@@ -2,7 +2,6 @@ import torch.nn as nn
 
 
 class Registry(object):
-
     def __init__(self, name):
         self._name = name
         self._module_dict = dict()
@@ -23,12 +22,13 @@ class Registry(object):
         """
         if not issubclass(module_class, nn.Module):
             raise TypeError(
-                'module must be a child of nn.Module, but got {}'.format(
-                    module_class))
+                "module must be a child of nn.Module, but got {}".format(module_class)
+            )
         module_name = module_class.__name__
         if module_name in self._module_dict:
-            raise KeyError('{} is already registered in {}'.format(
-                module_name, self.name))
+            raise KeyError(
+                "{} is already registered in {}".format(module_name, self.name)
+            )
         self._module_dict[module_name] = module_class
 
     def register_module(self, cls):
@@ -36,10 +36,10 @@ class Registry(object):
         return cls
 
 
-BACKBONES = Registry('backbone')
-NECKS = Registry('neck')
-ROI_EXTRACTORS = Registry('roi_extractor')
-SHARED_HEADS = Registry('shared_head')
-HEADS = Registry('head')
-LOSSES = Registry('loss')
-DETECTORS = Registry('detector')
+BACKBONES = Registry("backbone")
+NECKS = Registry("neck")
+ROI_EXTRACTORS = Registry("roi_extractor")
+SHARED_HEADS = Registry("shared_head")
+HEADS = Registry("head")
+LOSSES = Registry("loss")
+DETECTORS = Registry("detector")

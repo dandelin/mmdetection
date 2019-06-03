@@ -29,13 +29,15 @@ class ApproxMaxIoUAssigner(MaxIoUAssigner):
             `bboxes` and `gt_bboxes_ignore`, or the contrary.
     """
 
-    def __init__(self,
-                 pos_iou_thr,
-                 neg_iou_thr,
-                 min_pos_iou=.0,
-                 gt_max_assign_all=True,
-                 ignore_iof_thr=-1,
-                 ignore_wrt_candidates=True):
+    def __init__(
+        self,
+        pos_iou_thr,
+        neg_iou_thr,
+        min_pos_iou=0.0,
+        gt_max_assign_all=True,
+        ignore_iof_thr=-1,
+        ignore_wrt_candidates=True,
+    ):
         self.pos_iou_thr = pos_iou_thr
         self.neg_iou_thr = neg_iou_thr
         self.min_pos_iou = min_pos_iou
@@ -43,13 +45,15 @@ class ApproxMaxIoUAssigner(MaxIoUAssigner):
         self.ignore_iof_thr = ignore_iof_thr
         self.ignore_wrt_candidates = ignore_wrt_candidates
 
-    def assign(self,
-               approxs,
-               squares,
-               approxs_per_octave,
-               gt_bboxes,
-               gt_bboxes_ignore=None,
-               gt_labels=None):
+    def assign(
+        self,
+        approxs,
+        squares,
+        approxs_per_octave,
+        gt_bboxes,
+        gt_bboxes_ignore=None,
+        gt_labels=None,
+    ):
         """Assign gt to approxs.
 
         This method assign a gt bbox to each group of approxs (bboxes),
@@ -83,32 +87,34 @@ class ApproxMaxIoUAssigner(MaxIoUAssigner):
         """
 
         if squares.shape[0] == 0 or gt_bboxes.shape[0] == 0:
-            raise ValueError('No gt or approxs')
+            raise ValueError("No gt or approxs")
         num_squares = squares.size(0)
         num_gts = gt_bboxes.size(0)
         # re-organize anchors by approxs_per_octave x num_squares
-        approxs = torch.transpose(
-            approxs.view(num_squares, approxs_per_octave, 4), 0,
-            1).contiguous().view(-1, 4)
+        approxs = (
+            torch.transpose(approxs.view(num_squares, approxs_per_octave, 4), 0, 1)
+            .contiguous()
+            .view(-1, 4)
+        )
         all_overlaps = bbox_overlaps(approxs, gt_bboxes)
 
-        overlaps, _ = all_overlaps.view(approxs_per_octave, num_squares,
-                                        num_gts).max(dim=0)
+        overlaps, _ = all_overlaps.view(approxs_per_octave, num_squares, num_gts).max(
+            dim=0
+        )
         overlaps = torch.transpose(overlaps, 0, 1)
 
         bboxes = squares[:, :4]
 
-        if (self.ignore_iof_thr > 0) and (gt_bboxes_ignore is not None) and (
-                gt_bboxes_ignore.numel() > 0):
+        if (
+            (self.ignore_iof_thr > 0)
+            and (gt_bboxes_ignore is not None)
+            and (gt_bboxes_ignore.numel() > 0)
+        ):
             if self.ignore_wrt_candidates:
-                ignore_overlaps = bbox_overlaps(bboxes,
-                                                gt_bboxes_ignore,
-                                                mode='iof')
+                ignore_overlaps = bbox_overlaps(bboxes, gt_bboxes_ignore, mode="iof")
                 ignore_max_overlaps, _ = ignore_overlaps.max(dim=1)
             else:
-                ignore_overlaps = bbox_overlaps(gt_bboxes_ignore,
-                                                bboxes,
-                                                mode='iof')
+                ignore_overlaps = bbox_overlaps(gt_bboxes_ignore, bboxes, mode="iof")
                 ignore_max_overlaps, _ = ignore_overlaps.max(dim=0)
             overlaps[:, ignore_max_overlaps > self.ignore_iof_thr] = -1
 

@@ -1,3 +1,4 @@
-from .version import __version__, short_version
+# from .version import __version__, short_version
 
-__all__ = ['__version__', 'short_version']
+# __all__ = ["__version__", "short_version"]
+from . import datasets

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from mmdet.core import weighted_balanced_l1_loss
+from third_party.mmdetection.mmdet.core import weighted_balanced_l1_loss
 
 from ..registry import LOSSES
 
@@ -27,5 +27,6 @@ class BalancedL1Loss(nn.Module):
             gamma=self.gamma,
             beta=self.beta,
             *args,
-            **kwargs)
+            **kwargs
+        )
         return loss_bbox

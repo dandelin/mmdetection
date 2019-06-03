@@ -15,7 +15,7 @@ class ConcatDataset(_ConcatDataset):
     def __init__(self, datasets):
         super(ConcatDataset, self).__init__(datasets)
         self.CLASSES = datasets[0].CLASSES
-        if hasattr(datasets[0], 'flag'):
+        if hasattr(datasets[0], "flag"):
             flags = []
             for i in range(0, len(datasets)):
                 flags.append(datasets[i].flag)

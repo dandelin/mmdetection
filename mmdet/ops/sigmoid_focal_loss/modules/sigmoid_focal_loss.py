@@ -4,7 +4,6 @@ from ..functions.sigmoid_focal_loss import sigmoid_focal_loss
 
 
 class SigmoidFocalLoss(nn.Module):
-
     def __init__(self, gamma, alpha):
         super(SigmoidFocalLoss, self).__init__()
         self.gamma = gamma

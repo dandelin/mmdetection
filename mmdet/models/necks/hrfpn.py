@@ -26,14 +26,16 @@ class HRFPN(nn.Module):
             memory while slowing down the training speed.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 num_outs=5,
-                 pooling_type='AVG',
-                 conv_cfg=None,
-                 norm_cfg=None,
-                 with_cp=False):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_outs=5,
+        pooling_type="AVG",
+        conv_cfg=None,
+        norm_cfg=None,
+        with_cp=False,
+    ):
         super(HRFPN, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
@@ -49,7 +51,8 @@ class HRFPN(nn.Module):
             out_channels,
             kernel_size=1,
             conv_cfg=self.conv_cfg,
-            activation=None)
+            activation=None,
+        )
 
         self.fpn_convs = nn.ModuleList()
         for i in range(self.num_outs):
@@ -60,9 +63,11 @@ class HRFPN(nn.Module):
                     kernel_size=3,
                     padding=1,
                     conv_cfg=self.conv_cfg,
-                    activation=None))
+                    activation=None,
+                )
+            )
 
-        if pooling_type == 'MAX':
+        if pooling_type == "MAX":
             self.pooling = F.max_pool2d
         else:
             self.pooling = F.avg_pool2d
@@ -76,8 +81,7 @@ class HRFPN(nn.Module):
         assert len(inputs) == self.num_ins
         outs = [inputs[0]]
         for i in range(1, self.num_ins):
-            outs.append(
-                F.interpolate(inputs[i], scale_factor=2**i, mode='bilinear'))
+            outs.append(F.interpolate(inputs[i], scale_factor=2 ** i, mode="bilinear"))
         out = torch.cat(outs, dim=1)
         if out.requires_grad and self.with_cp:
             out = checkpoint(self.reduction_conv, out)
@@ -85,7 +89,7 @@ class HRFPN(nn.Module):
             out = self.reduction_conv(out)
         outs = [out]
         for i in range(1, self.num_outs):
-            outs.append(self.pooling(out, kernel_size=2**i, stride=2**i))
+            outs.append(self.pooling(out, kernel_size=2 ** i, stride=2 ** i))
         outputs = []
 
         for i in range(self.num_outs):

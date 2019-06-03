@@ -6,13 +6,13 @@ import pycocotools.mask as maskUtils
 import torch
 from mmcv.runner import load_checkpoint
 
-from mmdet.core import get_classes
-from mmdet.datasets import to_tensor
-from mmdet.datasets.transforms import ImageTransform
-from mmdet.models import build_detector
+from third_party.mmdetection.mmdet.core import get_classes
+from third_party.mmdetection.mmdet.datasets import to_tensor
+from third_party.mmdetection.mmdet.datasets.transforms import ImageTransform
+from third_party.mmdetection.mmdet.models import build_detector
 
 
-def init_detector(config, checkpoint=None, device='cuda:0'):
+def init_detector(config, checkpoint=None, device="cuda:0"):
     """Initialize a detector from config file.
 
     Args:
@@ -27,18 +27,22 @@ def init_detector(config, checkpoint=None, device='cuda:0'):
     if isinstance(config, str):
         config = mmcv.Config.fromfile(config)
     elif not isinstance(config, mmcv.Config):
-        raise TypeError('config must be a filename or Config object, '
-                        'but got {}'.format(type(config)))
+        raise TypeError(
+            "config must be a filename or Config object, "
+            "but got {}".format(type(config))
+        )
     config.model.pretrained = None
     model = build_detector(config.model, test_cfg=config.test_cfg)
     if checkpoint is not None:
         checkpoint = load_checkpoint(model, checkpoint)
-        if 'CLASSES' in checkpoint['meta']:
-            model.CLASSES = checkpoint['meta']['CLASSES']
+        if "CLASSES" in checkpoint["meta"]:
+            model.CLASSES = checkpoint["meta"]["CLASSES"]
         else:
-            warnings.warn('Class names are not saved in the checkpoint\'s '
-                          'meta data, use COCO classes by default.')
-            model.CLASSES = get_classes('coco')
+            warnings.warn(
+                "Class names are not saved in the checkpoint's "
+                "meta data, use COCO classes by default."
+            )
+            model.CLASSES = get_classes("coco")
     model.cfg = config  # save the config in the model for convenience
     model.to(device)
     model.eval()
@@ -59,7 +63,8 @@ def inference_detector(model, imgs):
     """
     cfg = model.cfg
     img_transform = ImageTransform(
-        size_divisor=cfg.data.test.size_divisor, **cfg.img_norm_cfg)
+        size_divisor=cfg.data.test.size_divisor, **cfg.img_norm_cfg
+    )
 
     device = next(model.parameters()).device  # model device
     if not isinstance(imgs, list):
@@ -73,7 +78,8 @@ def _prepare_data(img, img_transform, cfg, device):
     img, img_shape, pad_shape, scale_factor = img_transform(
         img,
         scale=cfg.data.test.img_scale,
-        keep_ratio=cfg.data.test.get('resize_keep_ratio', True))
+        keep_ratio=cfg.data.test.get("resize_keep_ratio", True),
+    )
     img = to_tensor(img).to(device).unsqueeze(0)
     img_meta = [
         dict(
@@ -81,7 +87,8 @@ def _prepare_data(img, img_transform, cfg, device):
             img_shape=img_shape,
             pad_shape=pad_shape,
             scale_factor=scale_factor,
-            flip=False)
+            flip=False,
+        )
     ]
     return dict(img=[img], img_meta=[img_meta])
 
@@ -129,8 +136,7 @@ def show_result(img, result, class_names, score_thr=0.3, out_file=None):
             img[mask] = img[mask] * 0.5 + color_mask * 0.5
     # draw bounding boxes
     labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32)
-        for i, bbox in enumerate(bbox_result)
+        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(bbox_result)
     ]
     labels = np.concatenate(labels)
     mmcv.imshow_det_bboxes(
@@ -140,4 +146,5 @@ def show_result(img, result, class_names, score_thr=0.3, out_file=None):
         class_names=class_names,
         score_thr=score_thr,
         show=out_file is None,
-        out_file=out_file)
+        out_file=out_file,
+    )

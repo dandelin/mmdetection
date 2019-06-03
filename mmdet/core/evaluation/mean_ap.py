@@ -6,7 +6,7 @@ from .bbox_overlaps import bbox_overlaps
 from .class_names import get_classes
 
 
-def average_precision(recalls, precisions, mode='area'):
+def average_precision(recalls, precisions, mode="area"):
     """Calculate average precision (for single or multiple scales).
 
     Args:
@@ -27,7 +27,7 @@ def average_precision(recalls, precisions, mode='area'):
     assert recalls.shape == precisions.shape and recalls.ndim == 2
     num_scales = recalls.shape[0]
     ap = np.zeros(num_scales, dtype=np.float32)
-    if mode == 'area':
+    if mode == "area":
         zeros = np.zeros((num_scales, 1), dtype=recalls.dtype)
         ones = np.ones((num_scales, 1), dtype=recalls.dtype)
         mrec = np.hstack((zeros, recalls, ones))
@@ -36,9 +36,8 @@ def average_precision(recalls, precisions, mode='area'):
             mpre[:, i - 1] = np.maximum(mpre[:, i - 1], mpre[:, i])
         for i in range(num_scales):
             ind = np.where(mrec[i, 1:] != mrec[i, :-1])[0]
-            ap[i] = np.sum(
-                (mrec[i, ind + 1] - mrec[i, ind]) * mpre[i, ind + 1])
-    elif mode == '11points':
+            ap[i] = np.sum((mrec[i, ind + 1] - mrec[i, ind]) * mpre[i, ind + 1])
+    elif mode == "11points":
         for i in range(num_scales):
             for thr in np.arange(0, 1 + 1e-3, 0.1):
                 precs = precisions[i, recalls[i, :] >= thr]
@@ -46,18 +45,13 @@ def average_precision(recalls, precisions, mode='area'):
                 ap[i] += prec
             ap /= 11
     else:
-        raise ValueError(
-            'Unrecognized mode, only "area" and "11points" are supported')
+        raise ValueError('Unrecognized mode, only "area" and "11points" are supported')
     if no_scale:
         ap = ap[0]
     return ap
 
 
-def tpfp_imagenet(det_bboxes,
-                  gt_bboxes,
-                  gt_ignore,
-                  default_iou_thr,
-                  area_ranges=None):
+def tpfp_imagenet(det_bboxes, gt_bboxes, gt_ignore, default_iou_thr, area_ranges=None):
     """Check if detected bboxes are true positive or false positive.
 
     Args:
@@ -84,15 +78,17 @@ def tpfp_imagenet(det_bboxes,
             fp[...] = 1
         else:
             det_areas = (det_bboxes[:, 2] - det_bboxes[:, 0] + 1) * (
-                det_bboxes[:, 3] - det_bboxes[:, 1] + 1)
+                det_bboxes[:, 3] - det_bboxes[:, 1] + 1
+            )
             for i, (min_area, max_area) in enumerate(area_ranges):
                 fp[i, (det_areas >= min_area) & (det_areas < max_area)] = 1
         return tp, fp
     ious = bbox_overlaps(det_bboxes, gt_bboxes - 1)
     gt_w = gt_bboxes[:, 2] - gt_bboxes[:, 0] + 1
     gt_h = gt_bboxes[:, 3] - gt_bboxes[:, 1] + 1
-    iou_thrs = np.minimum((gt_w * gt_h) / ((gt_w + 10.0) * (gt_h + 10.0)),
-                          default_iou_thr)
+    iou_thrs = np.minimum(
+        (gt_w * gt_h) / ((gt_w + 10.0) * (gt_h + 10.0)), default_iou_thr
+    )
     # sort all detections by scores in descending order
     sort_inds = np.argsort(-det_bboxes[:, -1])
     for k, (min_area, max_area) in enumerate(area_ranges):
@@ -162,7 +158,8 @@ def tpfp_default(det_bboxes, gt_bboxes, gt_ignore, iou_thr, area_ranges=None):
             fp[...] = 1
         else:
             det_areas = (det_bboxes[:, 2] - det_bboxes[:, 0] + 1) * (
-                det_bboxes[:, 3] - det_bboxes[:, 1] + 1)
+                det_bboxes[:, 3] - det_bboxes[:, 1] + 1
+            )
             for i, (min_area, max_area) in enumerate(area_ranges):
                 fp[i, (det_areas >= min_area) & (det_areas < max_area)] = 1
         return tp, fp
@@ -177,7 +174,8 @@ def tpfp_default(det_bboxes, gt_bboxes, gt_ignore, iou_thr, area_ranges=None):
             gt_area_ignore = np.zeros_like(gt_ignore, dtype=bool)
         else:
             gt_areas = (gt_bboxes[:, 2] - gt_bboxes[:, 0] + 1) * (
-                gt_bboxes[:, 3] - gt_bboxes[:, 1] + 1)
+                gt_bboxes[:, 3] - gt_bboxes[:, 1] + 1
+            )
             gt_area_ignore = (gt_areas < min_area) | (gt_areas >= max_area)
         for i in sort_inds:
             if ious_max[i] >= iou_thr:
@@ -201,13 +199,12 @@ def tpfp_default(det_bboxes, gt_bboxes, gt_ignore, iou_thr, area_ranges=None):
 
 def get_cls_results(det_results, gt_bboxes, gt_labels, gt_ignore, class_id):
     """Get det results and gt information of a certain class."""
-    cls_dets = [det[class_id]
-                for det in det_results]  # det bboxes of this class
+    cls_dets = [det[class_id] for det in det_results]  # det bboxes of this class
     cls_gts = []  # gt bboxes of this class
     cls_gt_ignore = []
     for j in range(len(gt_bboxes)):
         gt_bbox = gt_bboxes[j]
-        cls_inds = (gt_labels[j] == class_id + 1)
+        cls_inds = gt_labels[j] == class_id + 1
         cls_gt = gt_bbox[cls_inds, :] if gt_bbox.shape[0] > 0 else gt_bbox
         cls_gts.append(cls_gt)
         if gt_ignore is None:
@@ -217,14 +214,16 @@ def get_cls_results(det_results, gt_bboxes, gt_labels, gt_ignore, class_id):
     return cls_dets, cls_gts, cls_gt_ignore
 
 
-def eval_map(det_results,
-             gt_bboxes,
-             gt_labels,
-             gt_ignore=None,
-             scale_ranges=None,
-             iou_thr=0.5,
-             dataset=None,
-             print_summary=True):
+def eval_map(
+    det_results,
+    gt_bboxes,
+    gt_labels,
+    gt_ignore=None,
+    scale_ranges=None,
+    iou_thr=0.5,
+    dataset=None,
+    print_summary=True,
+):
     """Evaluate mAP of a dataset.
 
     Args:
@@ -248,24 +247,25 @@ def eval_map(det_results,
         assert len(gt_ignore) == len(gt_labels)
         for i in range(len(gt_ignore)):
             assert len(gt_labels[i]) == len(gt_ignore[i])
-    area_ranges = ([(rg[0]**2, rg[1]**2) for rg in scale_ranges]
-                   if scale_ranges is not None else None)
+    area_ranges = (
+        [(rg[0] ** 2, rg[1] ** 2) for rg in scale_ranges]
+        if scale_ranges is not None
+        else None
+    )
     num_scales = len(scale_ranges) if scale_ranges is not None else 1
     eval_results = []
     num_classes = len(det_results[0])  # positive class num
-    gt_labels = [
-        label if label.ndim == 1 else label[:, 0] for label in gt_labels
-    ]
+    gt_labels = [label if label.ndim == 1 else label[:, 0] for label in gt_labels]
     for i in range(num_classes):
         # get gt and det bboxes of this class
         cls_dets, cls_gts, cls_gt_ignore = get_cls_results(
-            det_results, gt_bboxes, gt_labels, gt_ignore, i)
+            det_results, gt_bboxes, gt_labels, gt_ignore, i
+        )
         # calculate tp and fp for each image
-        tpfp_func = (
-            tpfp_imagenet if dataset in ['det', 'vid'] else tpfp_default)
+        tpfp_func = tpfp_imagenet if dataset in ["det", "vid"] else tpfp_default
         tpfp = [
-            tpfp_func(cls_dets[j], cls_gts[j], cls_gt_ignore[j], iou_thr,
-                      area_ranges) for j in range(len(cls_dets))
+            tpfp_func(cls_dets[j], cls_gts[j], cls_gt_ignore[j], iou_thr, area_ranges)
+            for j in range(len(cls_dets))
         ]
         tp, fp = tuple(zip(*tpfp))
         # calculate gt number of each scale, gts ignored or beyond scale
@@ -275,12 +275,13 @@ def eval_map(det_results,
             if area_ranges is None:
                 num_gts[0] += np.sum(np.logical_not(cls_gt_ignore[j]))
             else:
-                gt_areas = (bbox[:, 2] - bbox[:, 0] + 1) * (
-                    bbox[:, 3] - bbox[:, 1] + 1)
+                gt_areas = (bbox[:, 2] - bbox[:, 0] + 1) * (bbox[:, 3] - bbox[:, 1] + 1)
                 for k, (min_area, max_area) in enumerate(area_ranges):
                     num_gts[k] += np.sum(
-                        np.logical_not(cls_gt_ignore[j]) &
-                        (gt_areas >= min_area) & (gt_areas < max_area))
+                        np.logical_not(cls_gt_ignore[j])
+                        & (gt_areas >= min_area)
+                        & (gt_areas < max_area)
+                    )
         # sort all det bboxes by score, also sort tp and fp
         cls_dets = np.vstack(cls_dets)
         num_dets = cls_dets.shape[0]
@@ -298,30 +299,32 @@ def eval_map(det_results,
             recalls = recalls[0, :]
             precisions = precisions[0, :]
             num_gts = num_gts.item()
-        mode = 'area' if dataset != 'voc07' else '11points'
+        mode = "area" if dataset != "voc07" else "11points"
         ap = average_precision(recalls, precisions, mode)
-        eval_results.append({
-            'num_gts': num_gts,
-            'num_dets': num_dets,
-            'recall': recalls,
-            'precision': precisions,
-            'ap': ap
-        })
+        eval_results.append(
+            {
+                "num_gts": num_gts,
+                "num_dets": num_dets,
+                "recall": recalls,
+                "precision": precisions,
+                "ap": ap,
+            }
+        )
     if scale_ranges is not None:
         # shape (num_classes, num_scales)
-        all_ap = np.vstack([cls_result['ap'] for cls_result in eval_results])
-        all_num_gts = np.vstack(
-            [cls_result['num_gts'] for cls_result in eval_results])
+        all_ap = np.vstack([cls_result["ap"] for cls_result in eval_results])
+        all_num_gts = np.vstack([cls_result["num_gts"] for cls_result in eval_results])
         mean_ap = [
             all_ap[all_num_gts[:, i] > 0, i].mean()
-            if np.any(all_num_gts[:, i] > 0) else 0.0
+            if np.any(all_num_gts[:, i] > 0)
+            else 0.0
             for i in range(num_scales)
         ]
     else:
         aps = []
         for cls_result in eval_results:
-            if cls_result['num_gts'] > 0:
-                aps.append(cls_result['ap'])
+            if cls_result["num_gts"] > 0:
+                aps.append(cls_result["ap"])
         mean_ap = np.array(aps).mean().item() if aps else 0.0
     if print_summary:
         print_map_summary(mean_ap, eval_results, dataset)
@@ -337,8 +340,9 @@ def print_map_summary(mean_ap, results, dataset=None):
         results(list): calculated from `eval_map`
         dataset(None or str or list): dataset name or dataset classes.
     """
-    num_scales = len(results[0]['ap']) if isinstance(results[0]['ap'],
-                                                     np.ndarray) else 1
+    num_scales = (
+        len(results[0]["ap"]) if isinstance(results[0]["ap"], np.ndarray) else 1
+    )
     num_classes = len(results)
 
     recalls = np.zeros((num_scales, num_classes), dtype=np.float32)
@@ -346,12 +350,11 @@ def print_map_summary(mean_ap, results, dataset=None):
     aps = np.zeros((num_scales, num_classes), dtype=np.float32)
     num_gts = np.zeros((num_scales, num_classes), dtype=int)
     for i, cls_result in enumerate(results):
-        if cls_result['recall'].size > 0:
-            recalls[:, i] = np.array(cls_result['recall'], ndmin=2)[:, -1]
-            precisions[:, i] = np.array(
-                cls_result['precision'], ndmin=2)[:, -1]
-        aps[:, i] = cls_result['ap']
-        num_gts[:, i] = cls_result['num_gts']
+        if cls_result["recall"].size > 0:
+            recalls[:, i] = np.array(cls_result["recall"], ndmin=2)[:, -1]
+            precisions[:, i] = np.array(cls_result["precision"], ndmin=2)[:, -1]
+        aps[:, i] = cls_result["ap"]
+        num_gts[:, i] = cls_result["num_gts"]
 
     if dataset is None:
         label_names = [str(i) for i in range(1, num_classes + 1)]
@@ -362,17 +365,20 @@ def print_map_summary(mean_ap, results, dataset=None):
 
     if not isinstance(mean_ap, list):
         mean_ap = [mean_ap]
-    header = ['class', 'gts', 'dets', 'recall', 'precision', 'ap']
+    header = ["class", "gts", "dets", "recall", "precision", "ap"]
     for i in range(num_scales):
         table_data = [header]
         for j in range(num_classes):
             row_data = [
-                label_names[j], num_gts[i, j], results[j]['num_dets'],
-                '{:.3f}'.format(recalls[i, j]), '{:.3f}'.format(
-                    precisions[i, j]), '{:.3f}'.format(aps[i, j])
+                label_names[j],
+                num_gts[i, j],
+                results[j]["num_dets"],
+                "{:.3f}".format(recalls[i, j]),
+                "{:.3f}".format(precisions[i, j]),
+                "{:.3f}".format(aps[i, j]),
             ]
             table_data.append(row_data)
-        table_data.append(['mAP', '', '', '', '', '{:.3f}'.format(mean_ap[i])])
+        table_data.append(["mAP", "", "", "", "", "{:.3f}".format(mean_ap[i])])
         table = AsciiTable(table_data)
         table.inner_footing_row_border = True
         print(table.table)

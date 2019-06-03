@@ -1,13 +1,15 @@
 import torch.nn as nn
-from mmdet.core import (weighted_cross_entropy, weighted_binary_cross_entropy,
-                        mask_cross_entropy)
+from third_party.mmdetection.mmdet.core import (
+    weighted_cross_entropy,
+    weighted_binary_cross_entropy,
+    mask_cross_entropy,
+)
 
 from ..registry import LOSSES
 
 
 @LOSSES.register_module
 class CrossEntropyLoss(nn.Module):
-
     def __init__(self, use_sigmoid=False, use_mask=False, loss_weight=1.0):
         super(CrossEntropyLoss, self).__init__()
         assert (use_sigmoid is False) or (use_mask is False)
@@ -24,5 +26,6 @@ class CrossEntropyLoss(nn.Module):
 
     def forward(self, cls_score, label, label_weight, *args, **kwargs):
         loss_cls = self.loss_weight * self.cls_criterion(
-            cls_score, label, label_weight, *args, **kwargs)
+            cls_score, label, label_weight, *args, **kwargs
+        )
         return loss_cls

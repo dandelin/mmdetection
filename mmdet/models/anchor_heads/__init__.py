@@ -8,6 +8,13 @@ from .ga_retina_head import GARetinaHead
 from .ssd_head import SSDHead
 
 __all__ = [
-    'AnchorHead', 'GuidedAnchorHead', 'FeatureAdaption', 'RPNHead',
-    'GARPNHead', 'RetinaHead', 'GARetinaHead', 'SSDHead', 'FCOSHead'
+    "AnchorHead",
+    "GuidedAnchorHead",
+    "FeatureAdaption",
+    "RPNHead",
+    "GARPNHead",
+    "RetinaHead",
+    "GARetinaHead",
+    "SSDHead",
+    "FCOSHead",
 ]

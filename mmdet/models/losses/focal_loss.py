@@ -1,19 +1,14 @@
 import torch.nn as nn
-from mmdet.core import weighted_sigmoid_focal_loss
+from third_party.mmdetection.mmdet.core import weighted_sigmoid_focal_loss
 
 from ..registry import LOSSES
 
 
 @LOSSES.register_module
 class FocalLoss(nn.Module):
-
-    def __init__(self,
-                 use_sigmoid=False,
-                 loss_weight=1.0,
-                 gamma=2.0,
-                 alpha=0.25):
+    def __init__(self, use_sigmoid=False, loss_weight=1.0, gamma=2.0, alpha=0.25):
         super(FocalLoss, self).__init__()
-        assert use_sigmoid is True, 'Only sigmoid focaloss supported now.'
+        assert use_sigmoid is True, "Only sigmoid focaloss supported now."
         self.use_sigmoid = use_sigmoid
         self.loss_weight = loss_weight
         self.gamma = gamma
@@ -29,7 +24,8 @@ class FocalLoss(nn.Module):
                 gamma=self.gamma,
                 alpha=self.alpha,
                 *args,
-                **kwargs)
+                **kwargs
+            )
         else:
             raise NotImplementedError
         return loss_cls

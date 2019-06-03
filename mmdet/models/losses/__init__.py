@@ -6,6 +6,11 @@ from .balanced_l1_loss import BalancedL1Loss
 from .iou_loss import IoULoss
 
 __all__ = [
-    'CrossEntropyLoss', 'FocalLoss', 'SmoothL1Loss', 'BalancedL1Loss',
-    'IoULoss', 'GHMC', 'GHMR'
+    "CrossEntropyLoss",
+    "FocalLoss",
+    "SmoothL1Loss",
+    "BalancedL1Loss",
+    "IoULoss",
+    "GHMC",
+    "GHMR",
 ]

@@ -31,12 +31,14 @@ def bbox2delta(proposals, gt, means=[0, 0, 0, 0], stds=[1, 1, 1, 1]):
     return deltas
 
 
-def delta2bbox(rois,
-               deltas,
-               means=[0, 0, 0, 0],
-               stds=[1, 1, 1, 1],
-               max_shape=None,
-               wh_ratio_clip=16 / 1000):
+def delta2bbox(
+    rois,
+    deltas,
+    means=[0, 0, 0, 0],
+    stds=[1, 1, 1, 1],
+    max_shape=None,
+    wh_ratio_clip=16 / 1000,
+):
     means = deltas.new_tensor(means).repeat(1, deltas.size(1) // 4)
     stds = deltas.new_tensor(stds).repeat(1, deltas.size(1) // 4)
     denorm_deltas = deltas * stds + means
@@ -129,7 +131,7 @@ def roi2bbox(rois):
     bbox_list = []
     img_ids = torch.unique(rois[:, 0].cpu(), sorted=True)
     for img_id in img_ids:
-        inds = (rois[:, 0] == img_id.item())
+        inds = rois[:, 0] == img_id.item()
         bbox = rois[inds, 1:]
         bbox_list.append(bbox)
     return bbox_list
@@ -147,9 +149,7 @@ def bbox2result(bboxes, labels, num_classes):
         list(ndarray): bbox results of each class
     """
     if bboxes.shape[0] == 0:
-        return [
-            np.zeros((0, 5), dtype=np.float32) for i in range(num_classes - 1)
-        ]
+        return [np.zeros((0, 5), dtype=np.float32) for i in range(num_classes - 1)]
     else:
         bboxes = bboxes.cpu().numpy()
         labels = labels.cpu().numpy()

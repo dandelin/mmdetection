@@ -11,7 +11,8 @@ def _expand_binary_labels(labels, label_weights, label_channels):
     if inds.numel() > 0:
         bin_labels[inds, labels[inds] - 1] = 1
     bin_label_weights = label_weights.view(-1, 1).expand(
-        label_weights.size(0), label_channels)
+        label_weights.size(0), label_channels
+    )
     return bin_labels, bin_label_weights
 
 
@@ -29,12 +30,8 @@ class GHMC(nn.Module):
         use_sigmoid (bool): Can only be true for BCE based loss now.
         loss_weight (float): The weight of the total GHM-C loss.
     """
-    def __init__(
-            self,
-            bins=10,
-            momentum=0,
-            use_sigmoid=True,
-            loss_weight=1.0):
+
+    def __init__(self, bins=10, momentum=0, use_sigmoid=True, loss_weight=1.0):
         super(GHMC, self).__init__()
         self.bins = bins
         self.momentum = momentum
@@ -63,7 +60,8 @@ class GHMC(nn.Module):
         # the target should be binary class label
         if pred.dim() != target.dim():
             target, label_weight = _expand_binary_labels(
-                                    target, label_weight, pred.size(-1))
+                target, label_weight, pred.size(-1)
+            )
         target, label_weight = target.float(), label_weight.float()
         edges = self.edges
         mmt = self.momentum
@@ -76,12 +74,11 @@ class GHMC(nn.Module):
         tot = max(valid.float().sum().item(), 1.0)
         n = 0  # n valid bins
         for i in range(self.bins):
-            inds = (g >= edges[i]) & (g < edges[i+1]) & valid
+            inds = (g >= edges[i]) & (g < edges[i + 1]) & valid
             num_in_bin = inds.sum().item()
             if num_in_bin > 0:
                 if mmt > 0:
-                    self.acc_sum[i] = mmt * self.acc_sum[i] \
-                        + (1 - mmt) * num_in_bin
+                    self.acc_sum[i] = mmt * self.acc_sum[i] + (1 - mmt) * num_in_bin
                     weights[inds] = tot / self.acc_sum[i]
                 else:
                     weights[inds] = tot / num_in_bin
@@ -89,8 +86,10 @@ class GHMC(nn.Module):
         if n > 0:
             weights = weights / n
 
-        loss = F.binary_cross_entropy_with_logits(
-            pred, target, weights, reduction='sum') / tot
+        loss = (
+            F.binary_cross_entropy_with_logits(pred, target, weights, reduction="sum")
+            / tot
+        )
         return loss * self.loss_weight
 
 
@@ -108,12 +107,8 @@ class GHMR(nn.Module):
         momentum (float): The parameter for moving average.
         loss_weight (float): The weight of the total GHM-R loss.
     """
-    def __init__(
-            self,
-            mu=0.02,
-            bins=10,
-            momentum=0,
-            loss_weight=1.0):
+
+    def __init__(self, mu=0.02, bins=10, momentum=0, loss_weight=1.0):
         super(GHMR, self).__init__()
         self.mu = mu
         self.bins = bins
@@ -154,13 +149,12 @@ class GHMR(nn.Module):
         tot = max(label_weight.float().sum().item(), 1.0)
         n = 0  # n: valid bins
         for i in range(self.bins):
-            inds = (g >= edges[i]) & (g < edges[i+1]) & valid
+            inds = (g >= edges[i]) & (g < edges[i + 1]) & valid
             num_in_bin = inds.sum().item()
             if num_in_bin > 0:
                 n += 1
                 if mmt > 0:
-                    self.acc_sum[i] = mmt * self.acc_sum[i] \
-                        + (1 - mmt) * num_in_bin
+                    self.acc_sum[i] = mmt * self.acc_sum[i] + (1 - mmt) * num_in_bin
                     weights[inds] = tot / self.acc_sum[i]
                 else:
                     weights[inds] = tot / num_in_bin

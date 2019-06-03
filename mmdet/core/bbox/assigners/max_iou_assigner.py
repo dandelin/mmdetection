@@ -30,13 +30,15 @@ class MaxIoUAssigner(BaseAssigner):
             `bboxes` and `gt_bboxes_ignore`, or the contrary.
     """
 
-    def __init__(self,
-                 pos_iou_thr,
-                 neg_iou_thr,
-                 min_pos_iou=.0,
-                 gt_max_assign_all=True,
-                 ignore_iof_thr=-1,
-                 ignore_wrt_candidates=True):
+    def __init__(
+        self,
+        pos_iou_thr,
+        neg_iou_thr,
+        min_pos_iou=0.0,
+        gt_max_assign_all=True,
+        ignore_iof_thr=-1,
+        ignore_wrt_candidates=True,
+    ):
         self.pos_iou_thr = pos_iou_thr
         self.neg_iou_thr = neg_iou_thr
         self.min_pos_iou = min_pos_iou
@@ -71,19 +73,20 @@ class MaxIoUAssigner(BaseAssigner):
             :obj:`AssignResult`: The assign result.
         """
         if bboxes.shape[0] == 0 or gt_bboxes.shape[0] == 0:
-            raise ValueError('No gt or bboxes')
+            raise ValueError("No gt or bboxes")
         bboxes = bboxes[:, :4]
         overlaps = bbox_overlaps(gt_bboxes, bboxes)
 
-        if (self.ignore_iof_thr > 0) and (gt_bboxes_ignore is not None) and (
-                gt_bboxes_ignore.numel() > 0):
+        if (
+            (self.ignore_iof_thr > 0)
+            and (gt_bboxes_ignore is not None)
+            and (gt_bboxes_ignore.numel() > 0)
+        ):
             if self.ignore_wrt_candidates:
-                ignore_overlaps = bbox_overlaps(
-                    bboxes, gt_bboxes_ignore, mode='iof')
+                ignore_overlaps = bbox_overlaps(bboxes, gt_bboxes_ignore, mode="iof")
                 ignore_max_overlaps, _ = ignore_overlaps.max(dim=1)
             else:
-                ignore_overlaps = bbox_overlaps(
-                    gt_bboxes_ignore, bboxes, mode='iof')
+                ignore_overlaps = bbox_overlaps(gt_bboxes_ignore, bboxes, mode="iof")
                 ignore_max_overlaps, _ = ignore_overlaps.max(dim=0)
             overlaps[:, ignore_max_overlaps > self.ignore_iof_thr] = -1
 
@@ -102,13 +105,12 @@ class MaxIoUAssigner(BaseAssigner):
             :obj:`AssignResult`: The assign result.
         """
         if overlaps.numel() == 0:
-            raise ValueError('No gt or proposals')
+            raise ValueError("No gt or proposals")
 
         num_gts, num_bboxes = overlaps.size(0), overlaps.size(1)
 
         # 1. assign -1 by default
-        assigned_gt_inds = overlaps.new_full(
-            (num_bboxes, ), -1, dtype=torch.long)
+        assigned_gt_inds = overlaps.new_full((num_bboxes,), -1, dtype=torch.long)
 
         # for each anchor, which gt best overlaps with it
         # for each anchor, the max iou of all gts
@@ -119,12 +121,15 @@ class MaxIoUAssigner(BaseAssigner):
 
         # 2. assign negative: below
         if isinstance(self.neg_iou_thr, float):
-            assigned_gt_inds[(max_overlaps >= 0)
-                             & (max_overlaps < self.neg_iou_thr)] = 0
+            assigned_gt_inds[
+                (max_overlaps >= 0) & (max_overlaps < self.neg_iou_thr)
+            ] = 0
         elif isinstance(self.neg_iou_thr, tuple):
             assert len(self.neg_iou_thr) == 2
-            assigned_gt_inds[(max_overlaps >= self.neg_iou_thr[0])
-                             & (max_overlaps < self.neg_iou_thr[1])] = 0
+            assigned_gt_inds[
+                (max_overlaps >= self.neg_iou_thr[0])
+                & (max_overlaps < self.neg_iou_thr[1])
+            ] = 0
 
         # 3. assign positive: above positive IoU threshold
         pos_inds = max_overlaps >= self.pos_iou_thr
@@ -140,13 +145,13 @@ class MaxIoUAssigner(BaseAssigner):
                     assigned_gt_inds[gt_argmax_overlaps[i]] = i + 1
 
         if gt_labels is not None:
-            assigned_labels = assigned_gt_inds.new_zeros((num_bboxes, ))
+            assigned_labels = assigned_gt_inds.new_zeros((num_bboxes,))
             pos_inds = torch.nonzero(assigned_gt_inds > 0).squeeze()
             if pos_inds.numel() > 0:
-                assigned_labels[pos_inds] = gt_labels[
-                    assigned_gt_inds[pos_inds] - 1]
+                assigned_labels[pos_inds] = gt_labels[assigned_gt_inds[pos_inds] - 1]
         else:
             assigned_labels = None
 
         return AssignResult(
-            num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)
+            num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels
+        )
