@@ -7,6 +7,7 @@ from .utils import to_tensor, random_scale, show_ann, get_dataset
 from .concat_dataset import ConcatDataset
 from .repeat_dataset import RepeatDataset
 from .extra_aug import ExtraAugmentation
+from .unified import UnifiedDataset
 
 __all__ = [
     "CustomDataset",
@@ -23,4 +24,5 @@ __all__ = [
     "ConcatDataset",
     "RepeatDataset",
     "ExtraAugmentation",
+    "UnifiedDataset",
 ]

@@ -1,10 +1,17 @@
 import torch
+import ipdb
 
 from third_party.mmdetection.mmdet.ops.nms import nms_wrapper
 
 
 def multiclass_nms(
-    multi_bboxes, multi_scores, score_thr, nms_cfg, max_num=-1, score_factors=None
+    multi_bboxes,
+    multi_scores,
+    score_thr,
+    nms_cfg,
+    max_num=-1,
+    score_factors=None,
+    attrs=None,
 ):
     """NMS for multi-class bboxes.
 
@@ -24,7 +31,7 @@ def multiclass_nms(
             are 0-based.
     """
     num_classes = multi_scores.shape[1]
-    bboxes, labels = [], []
+    bboxes, labels, attrs = [], [], []
     nms_cfg_ = nms_cfg.copy()
     nms_type = nms_cfg_.pop("type", "nms")
     nms_op = getattr(nms_wrapper, nms_type)
@@ -37,6 +44,8 @@ def multiclass_nms(
             _bboxes = multi_bboxes[cls_inds, :]
         else:
             _bboxes = multi_bboxes[cls_inds, i * 4 : (i + 1) * 4]
+
+        ipdb.set_trace()
         _scores = multi_scores[cls_inds, i]
         if score_factors is not None:
             _scores *= score_factors[cls_inds]
@@ -59,4 +68,7 @@ def multiclass_nms(
         bboxes = multi_bboxes.new_zeros((0, 5))
         labels = multi_bboxes.new_zeros((0,), dtype=torch.long)
 
-    return bboxes, labels
+    if attrs is not None:
+        return bboxes, labels, attrs
+    else:
+        return bboxes, labels

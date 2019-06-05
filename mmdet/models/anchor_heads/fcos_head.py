@@ -76,7 +76,7 @@ class FCOSHead(nn.Module):
             self.feat_channels, self.cls_out_channels, 3, padding=1
         )
         self.fcos_reg = nn.Conv2d(self.feat_channels, 4, 3, padding=1)
-        self.fcos_attr = nn.Conv2d(self.feat_channels, 400, 3, padding=1)
+        self.fcos_attr = nn.Conv2d(self.feat_channels, 306, 3, padding=1)
         self.fcos_centerness = nn.Conv2d(self.feat_channels, 1, 3, padding=1)
 
         self.scales = nn.ModuleList([Scale(1.0) for _ in self.strides])
@@ -147,7 +147,7 @@ class FCOSHead(nn.Module):
             centerness.permute(0, 2, 3, 1).reshape(-1) for centerness in centernesses
         ]
         flatten_attr_scores = [
-            attr_score.permute(0, 2, 3, 1).reshape(-1, 400)
+            attr_score.permute(0, 2, 3, 1).reshape(-1, 306)
             for attr_score in attr_scores
         ]
         flatten_cls_scores = torch.cat(flatten_cls_scores)
@@ -212,9 +212,16 @@ class FCOSHead(nn.Module):
         )
 
     def get_bboxes(
-        self, cls_scores, bbox_preds, centernesses, img_metas, cfg, rescale=None
+        self,
+        cls_scores,
+        bbox_preds,
+        centernesses,
+        attr_scores,
+        img_metas,
+        cfg,
+        rescale=None,
     ):
-        assert len(cls_scores) == len(bbox_preds)
+        assert len(cls_scores) == len(bbox_preds) == len(attr_scores)
         num_levels = len(cls_scores)
 
         featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
@@ -224,6 +231,9 @@ class FCOSHead(nn.Module):
         result_list = []
         for img_id in range(len(img_metas)):
             cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
+            attr_score_list = [
+                attr_scores[i][img_id].detach() for i in range(num_levels)
+            ]
             bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]
             centerness_pred_list = [
                 centernesses[i][img_id].detach() for i in range(num_levels)
@@ -234,6 +244,7 @@ class FCOSHead(nn.Module):
                 cls_score_list,
                 bbox_pred_list,
                 centerness_pred_list,
+                attr_score_list,
                 mlvl_points,
                 img_shape,
                 scale_factor,
@@ -248,24 +259,29 @@ class FCOSHead(nn.Module):
         cls_scores,
         bbox_preds,
         centernesses,
+        attr_scores,
         mlvl_points,
         img_shape,
         scale_factor,
         cfg,
         rescale=False,
     ):
-        assert len(cls_scores) == len(bbox_preds) == len(mlvl_points)
+        assert (
+            len(cls_scores) == len(bbox_preds) == len(mlvl_points) == len(attr_scores)
+        )
         mlvl_bboxes = []
         mlvl_scores = []
         mlvl_centerness = []
-        for cls_score, bbox_pred, centerness, points in zip(
-            cls_scores, bbox_preds, centernesses, mlvl_points
+        mlvl_attrs = []
+        for cls_score, bbox_pred, centerness, attr_score, points in zip(
+            cls_scores, bbox_preds, centernesses, attr_scores, mlvl_points
         ):
             assert cls_score.size()[-2:] == bbox_pred.size()[-2:]
             scores = (
                 cls_score.permute(1, 2, 0).reshape(-1, self.cls_out_channels).sigmoid()
             )
             centerness = centerness.permute(1, 2, 0).reshape(-1).sigmoid()
+            attrs = attr_score.permute(1, 2, 0).reshape(-1, 306).sigmoid()
 
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             nms_pre = cfg.get("nms_pre", -1)
@@ -276,10 +292,13 @@ class FCOSHead(nn.Module):
                 bbox_pred = bbox_pred[topk_inds, :]
                 scores = scores[topk_inds, :]
                 centerness = centerness[topk_inds]
+                attrs = attrs[topk_inds, :]
             bboxes = distance2bbox(points, bbox_pred, max_shape=img_shape)
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
             mlvl_centerness.append(centerness)
+            mlvl_attrs.append(attrs)
+
         mlvl_bboxes = torch.cat(mlvl_bboxes)
         if rescale:
             mlvl_bboxes /= mlvl_bboxes.new_tensor(scale_factor)
@@ -287,6 +306,7 @@ class FCOSHead(nn.Module):
         padding = mlvl_scores.new_zeros(mlvl_scores.shape[0], 1)
         mlvl_scores = torch.cat([padding, mlvl_scores], dim=1)
         mlvl_centerness = torch.cat(mlvl_centerness)
+        mlvl_attrs = torch.cat(mlvl_attrs)
         det_bboxes, det_labels = multiclass_nms(
             mlvl_bboxes,
             mlvl_scores,
@@ -294,6 +314,7 @@ class FCOSHead(nn.Module):
             cfg.nms,
             cfg.max_per_img,
             score_factors=mlvl_centerness,
+            attrs=mlvl_attrs,
         )
         return det_bboxes, det_labels
 
