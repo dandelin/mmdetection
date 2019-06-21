@@ -10,22 +10,35 @@ from collections import defaultdict
 from .custom import CustomDataset
 
 
+def simpson_di(data):
+    N = len(data)
+    data = Counter(data).values()
+    return sum((n / N) ** 2 for n in data)
+
+
 class UnifiedDataset(CustomDataset):
     def load_annotations(self, ann_file):
         self.split = self.img_prefix
 
-        annotations, image_infos = dict(), dict()
+        annotations, image_infos, simpsons_with_prefix = dict(), dict(), dict()
         for prefix in ["OPEN_IMAGES", "COCO", "PASCAL", "VISUAL_GENOME"]:
             annotations_sqlite = SqliteDict(f"{ann_file}/{prefix}/annotations.sqlite")
-            annotations[prefix] = {
-                k: v for k, v in tqdm.tqdm(annotations_sqlite.items())
-            }
             image_infos_sqlite = SqliteDict(f"{ann_file}/{prefix}/image_infos.sqlite")
-            image_infos[prefix] = {
-                k: v
-                for k, v in tqdm.tqdm(image_infos_sqlite.items())
-                if k in annotations[prefix]
-            }
+            annos, infos, simpsons = dict(), dict(), dict()
+            for i, anno in enumerate(tqdm.tqdm(annotations_sqlite.items())):
+                annos[anno[0]] = anno[1]
+                labels = [box["entity"] for box in anno[1].values()]
+                simpson = simpson_di(labels)
+                simpsons[anno[0]] = simpson
+
+            annotations[prefix] = annos
+
+            for i, info in enumerate(tqdm.tqdm(image_infos_sqlite.items())):
+                if info[0] in annotations[prefix]:
+                    infos[info[0]] = info[1]
+
+            image_infos[prefix] = infos
+            simpsons_with_prefix[prefix] = simpsons
 
         entities, attributes, nats = list(), list(), list()
         for prefix, annotation in annotations.items():
@@ -62,7 +75,7 @@ class UnifiedDataset(CustomDataset):
 
         self.img_ids = [i[1] for i in image_ids]
 
-        img_infos, self.annotations = list(), dict()
+        img_infos, self.annotations, self.simpsons = list(), dict(), dict()
         for prefix, i in tqdm.tqdm(image_ids):
             info = image_infos[prefix][i]
             info["id"] = f"{prefix}__{i}"
@@ -92,8 +105,13 @@ class UnifiedDataset(CustomDataset):
                 else:
                     continue
 
+            # filter with simpsons
+            if simpsons_with_prefix[prefix][i] == 1:
+                continue
+
             img_infos.append(info)
             self.annotations[info["id"]] = annotations[prefix][i]
+            self.simpsons[info["id"]] = simpsons_with_prefix[prefix][i]
 
         self.img_prefix = f"{ann_file}/"
 
