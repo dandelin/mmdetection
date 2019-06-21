@@ -8,6 +8,7 @@ from .concat_dataset import ConcatDataset
 from .repeat_dataset import RepeatDataset
 from .extra_aug import ExtraAugmentation
 from .unified import UnifiedDataset
+from .unified_debug import UnifiedDebugDataset
 
 __all__ = [
     "CustomDataset",
@@ -25,4 +26,5 @@ __all__ = [
     "RepeatDataset",
     "ExtraAugmentation",
     "UnifiedDataset",
+    "UnifiedDebugDataset",
 ]

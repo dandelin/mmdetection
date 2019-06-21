@@ -1,5 +1,6 @@
 import mmcv
 import numpy as np
+import ipdb
 from terminaltables import AsciiTable
 
 from .bbox_overlaps import bbox_overlaps
@@ -242,6 +243,8 @@ def eval_map(
     Returns:
         tuple: (mAP, [dict, dict, ...])
     """
+    if len(det_results[0]) == 2:
+        det_results = [box for box, attr in det_results]
     assert len(det_results) == len(gt_bboxes) == len(gt_labels)
     if gt_ignore is not None:
         assert len(gt_ignore) == len(gt_labels)
@@ -327,7 +330,7 @@ def eval_map(
                 aps.append(cls_result["ap"])
         mean_ap = np.array(aps).mean().item() if aps else 0.0
     if print_summary:
-        print_map_summary(mean_ap, eval_results, dataset)
+        print_map_summary(mean_ap, eval_results, None)
 
     return mean_ap, eval_results
 
