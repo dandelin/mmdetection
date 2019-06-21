@@ -140,6 +140,11 @@ class UnifiedDataset(CustomDataset):
                     self.attr2label[attr]
                     for attr in ann["attributes"]
                     if attr in self.attr2label
+                    and attr
+                    not in [
+                        "Q690857",
+                        "Q1171248",
+                    ]  # ignore 'Occlusion' and 'Truncation'
                 ]
             )
 

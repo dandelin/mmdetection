@@ -197,9 +197,20 @@ class FCOSHead(nn.Module):
             loss_centerness = F.binary_cross_entropy_with_logits(
                 pos_centerness, pos_centerness_targets, reduction="mean"
             )[None]
+            # train those have at least one attribute
+            valid_attr_idx = pos_attr_targets.sum(dim=1) != 0
             loss_attr = F.binary_cross_entropy_with_logits(
-                pos_attr_pred, pos_attr_targets, reduction="mean"
+                pos_attr_pred[valid_attr_idx],
+                pos_attr_targets[valid_attr_idx],
+                reduction="mean",
             )[None]
+            if torch.isnan(loss_attr):
+                loss_attr = (
+                    F.binary_cross_entropy_with_logits(
+                        pos_attr_pred, pos_attr_targets, reduction="mean"
+                    )[None]
+                    * 0
+                )
         else:
             loss_reg = pos_bbox_preds.sum()[None]
             loss_centerness = pos_centerness.sum()[None]

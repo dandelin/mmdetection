@@ -49,10 +49,14 @@ class EfficientNetB5(nn.Module):
 
     def init_weights(self, pretrained=None):
         if isinstance(pretrained, str):
+            try:
+                rank = torch.distributed.get_rank()
+            except:
+                rank = 0
             weight_url = (
                 f"https://twg.daumcdn.net/ojo_tf_model_zoo/OX/efficientnet-b5.pth"
             )
-            weight_path = f"result/model_pretrained/efficientnet-b5.pth"
+            weight_path = f"result/model_pretrained/efficientnet-b5_{rank}.pth"
             os.makedirs("result/model_pretrained", exist_ok=True)
 
             if not os.path.exists(weight_path):
