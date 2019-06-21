@@ -1,10 +1,14 @@
 import warnings
+import os
+import ipdb
 
 import mmcv
 import numpy as np
 import pycocotools.mask as maskUtils
 import torch
 from mmcv.runner import load_checkpoint
+from matplotlib import pyplot as plt
+from PIL import Image
 
 from third_party.mmdetection.mmdet.core import get_classes
 from third_party.mmdetection.mmdet.datasets import to_tensor
@@ -107,7 +111,7 @@ def _inference_generator(model, imgs, img_transform, device):
 
 
 # TODO: merge this method with the one in BaseDetector
-def show_result(img, result, class_names, score_thr=0.3, out_file=None):
+def show_result(img, result, class_names, attr_names, score_thr=0.3, out_file=None):
     """Visualize the detection results on the image.
 
     Args:
@@ -121,30 +125,79 @@ def show_result(img, result, class_names, score_thr=0.3, out_file=None):
     """
     assert isinstance(class_names, (tuple, list))
     img = mmcv.imread(img)
-    if isinstance(result, tuple):
-        bbox_result, segm_result = result
-    else:
-        bbox_result, segm_result = result, None
+    bbox_result, attr_result = result
     bboxes = np.vstack(bbox_result)
-    # draw segmentation masks
-    if segm_result is not None:
-        segms = mmcv.concat_list(segm_result)
-        inds = np.where(bboxes[:, -1] > score_thr)[0]
-        for i in inds:
-            color_mask = np.random.randint(0, 256, (1, 3), dtype=np.uint8)
-            mask = maskUtils.decode(segms[i]).astype(np.bool)
-            img[mask] = img[mask] * 0.5 + color_mask * 0.5
+    attrs = np.vstack(attr_result)
+
     # draw bounding boxes
     labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(bbox_result)
+        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(attr_result)
     ]
     labels = np.concatenate(labels)
-    mmcv.imshow_det_bboxes(
+    visualize(
         img.copy(),
         bboxes,
         labels,
+        attrs,
         class_names=class_names,
+        attr_names=attr_names,
         score_thr=score_thr,
         show=out_file is None,
         out_file=out_file,
     )
+
+
+def visualize(
+    img,
+    bboxes,
+    labels,
+    attrs,
+    class_names=None,
+    attr_names=None,
+    score_thr=0,
+    bbox_color="green",
+    text_color="green",
+    thickness=1,
+    font_scale=0.5,
+    show=True,
+    win_name="",
+    wait_time=0,
+    out_file=None,
+):
+
+    fig = plt.figure(dpi=300)
+    ax = fig.add_subplot(1, 1, 1)
+    ax.imshow(img[:, :, [2, 1, 0]])
+
+    if score_thr > 0:
+        assert bboxes.shape[1] == 5
+        scores = bboxes[:, -1]
+        inds = scores > score_thr
+        bboxes = bboxes[inds, :]
+        labels = labels[inds]
+        attrs = attrs[inds, :]
+        scores = scores[inds]
+
+    for bbox, label, attr, score in zip(bboxes, labels, attrs, scores):
+        bbox_int = bbox.astype(np.int32)
+        x, y, w, h = (
+            bbox_int[0],
+            bbox_int[1],
+            bbox_int[2] - bbox_int[0],
+            bbox_int[3] - bbox_int[1],
+        )
+
+        ax.add_patch(
+            plt.Rectangle(
+                (x, y), w, h, facecolor="none", edgecolor="red", linewidth=0.5
+            )
+        )
+        desc = f'[{score:.2f} {class_names[label]}] ({" ".join([attr_names[i] for i, sc in enumerate(attr) if sc > 0.5])})'
+
+        bbox_style = {"facecolor": "white", "alpha": 0.5, "pad": 0}
+        ax.text(x, y, desc, style="italic", bbox=bbox_style, fontsize=4)
+
+    plt.autoscale()
+    os.makedirs(f"visualizations", exist_ok=True)
+    plt.savefig(f"visualizations/{out_file}")
+    plt.close(fig)

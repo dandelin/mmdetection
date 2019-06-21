@@ -1,4 +1,5 @@
 import torch
+import ipdb
 import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import normal_init
@@ -307,16 +308,16 @@ class FCOSHead(nn.Module):
         mlvl_scores = torch.cat([padding, mlvl_scores], dim=1)
         mlvl_centerness = torch.cat(mlvl_centerness)
         mlvl_attrs = torch.cat(mlvl_attrs)
-        det_bboxes, det_labels = multiclass_nms(
+        det_bboxes, det_labels, det_attrs = multiclass_nms(
             mlvl_bboxes,
             mlvl_scores,
             cfg.score_thr,
             cfg.nms,
             cfg.max_per_img,
             score_factors=mlvl_centerness,
-            attrs=mlvl_attrs,
+            multi_attrs=mlvl_attrs,
         )
-        return det_bboxes, det_labels
+        return det_bboxes, det_labels, det_attrs
 
     def get_points(self, featmap_sizes, dtype, device):
         """Get points according to feature map sizes.

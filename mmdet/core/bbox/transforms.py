@@ -137,7 +137,7 @@ def roi2bbox(rois):
     return bbox_list
 
 
-def bbox2result(bboxes, labels, num_classes):
+def bbox2result(bboxes, labels, num_classes, attrs=None):
     """Convert detection results to a list of numpy arrays.
 
     Args:
@@ -153,7 +153,11 @@ def bbox2result(bboxes, labels, num_classes):
     else:
         bboxes = bboxes.cpu().numpy()
         labels = labels.cpu().numpy()
-        return [bboxes[labels == i, :] for i in range(num_classes - 1)]
+        attrs = attrs.cpu().numpy()
+        return (
+            [bboxes[labels == i, :] for i in range(num_classes - 1)],
+            [attrs[labels == i, :] for i in range(num_classes - 1)],
+        )
 
 
 def distance2bbox(points, distance, max_shape=None):

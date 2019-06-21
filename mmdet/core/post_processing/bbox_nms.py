@@ -11,7 +11,7 @@ def multiclass_nms(
     nms_cfg,
     max_num=-1,
     score_factors=None,
-    attrs=None,
+    multi_attrs=None,
 ):
     """NMS for multi-class bboxes.
 
@@ -45,30 +45,44 @@ def multiclass_nms(
         else:
             _bboxes = multi_bboxes[cls_inds, i * 4 : (i + 1) * 4]
 
-        ipdb.set_trace()
         _scores = multi_scores[cls_inds, i]
         if score_factors is not None:
             _scores *= score_factors[cls_inds]
         cls_dets = torch.cat([_bboxes, _scores[:, None]], dim=1)
-        cls_dets, _ = nms_op(cls_dets, **nms_cfg_)
+        cls_dets, _op_ind = nms_op(cls_dets, **nms_cfg_)
         cls_labels = multi_bboxes.new_full(
             (cls_dets.shape[0],), i - 1, dtype=torch.long
         )
+
+        if multi_attrs is not None:
+            cls_attrs = multi_attrs[cls_inds, :]
+            cls_attrs = cls_attrs[_op_ind]
+            attrs.append(cls_attrs)
+
         bboxes.append(cls_dets)
         labels.append(cls_labels)
+
     if bboxes:
         bboxes = torch.cat(bboxes)
         labels = torch.cat(labels)
+
+        if multi_attrs is not None:
+            attrs = torch.cat(attrs)
+
         if bboxes.shape[0] > max_num:
             _, inds = bboxes[:, -1].sort(descending=True)
             inds = inds[:max_num]
             bboxes = bboxes[inds]
             labels = labels[inds]
+            if multi_attrs is not None:
+                attrs = attrs[inds]
     else:
         bboxes = multi_bboxes.new_zeros((0, 5))
         labels = multi_bboxes.new_zeros((0,), dtype=torch.long)
+        if multi_attrs is not None:
+            attrs = multi_bboxes.new_zeros((0, 306))
 
-    if attrs is not None:
+    if multi_attrs is not None:
         return bboxes, labels, attrs
     else:
         return bboxes, labels
