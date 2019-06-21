@@ -4,7 +4,9 @@ from torchvision import models
 import requests
 import shutil
 import os
+import ipdb
 from loguru import logger
+from torch.nn.modules.batchnorm import _BatchNorm
 from classification.efficientnet import EfficientNet
 from ..registry import BACKBONES
 
@@ -13,12 +15,13 @@ from ..registry import BACKBONES
 class EfficientNetB5(nn.Module):
     """ Feature extractor class for efficientnet """
 
-    def __init__(self, min_reduction=4):
+    def __init__(self, min_reduction=4, frozen_stages=-1):
         super().__init__()
 
         self.model = EfficientNet.from_name("efficientnet-b5")
-
         self.min_reduction = min_reduction
+        self.frozen_stages = frozen_stages
+        self._freeze_stages()
 
     @staticmethod
     def act(x):
@@ -45,6 +48,7 @@ class EfficientNetB5(nn.Module):
                     outputs.append(x)
                 else:
                     outputs[-1] = x
+
         return tuple(outputs)
 
     def init_weights(self, pretrained=None):
@@ -71,3 +75,25 @@ class EfficientNetB5(nn.Module):
             logger.info(f"Loaded model from {weight_path}")
         else:
             raise TypeError("pretrained must be a str or None")
+
+    def train(self, mode=True):
+        super().train(mode)
+        self._freeze_stages()
+        if mode:
+            for m in self.modules():
+                # trick: eval have effect on BatchNorm only
+                if isinstance(m, _BatchNorm):
+                    m.eval()
+
+    def _freeze_stages(self):
+        if self.frozen_stages >= 0:
+            self.model._bn0.eval()
+            for m in [self.model._conv_stem, self.model._bn0]:
+                for param in m.parameters():
+                    param.requires_grad = False
+
+        # only apply frozen_stages = 1, blocks are hard-coded
+        # NO, just try all-finetunable network
+
+        for i, m in enumerate(self.model._blocks):
+            pass
