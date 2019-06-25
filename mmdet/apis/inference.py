@@ -192,7 +192,7 @@ def visualize(
                 (x, y), w, h, facecolor="none", edgecolor="red", linewidth=0.5
             )
         )
-        desc = f'[{score:.2f} {class_names[label]}] ({" ".join([attr_names[i] for i, sc in enumerate(attr) if sc > 0.5])})'
+        desc = f'[{score:.2f} {class_names[label]}] ({" ".join([attr_names[i] for i, sc in enumerate(attr) if sc > 0.2])})'
 
         bbox_style = {"facecolor": "white", "alpha": 0.5, "pad": 0}
         ax.text(x, y, desc, style="italic", bbox=bbox_style, fontsize=4)

@@ -56,14 +56,14 @@ class DistEvalHook(Hook):
             print("\n")
             dist.barrier()
             for i in range(1, runner.world_size):
-                tmp_file = osp.join(runner.work_dir, "temp_{}.pkl".format(i))
+                tmp_file = osp.join("/project/dataset/temp_{}.pkl".format(i))
                 tmp_results = mmcv.load(tmp_file)
                 for idx in range(i, len(results), runner.world_size):
                     results[idx] = tmp_results[idx]
                 os.remove(tmp_file)
             self.evaluate(runner, results)
         else:
-            tmp_file = osp.join(runner.work_dir, "temp_{}.pkl".format(runner.rank))
+            tmp_file = osp.join("/project/dataset/temp_{}.pkl".format(runner.rank))
             mmcv.dump(results, tmp_file)
             dist.barrier()
         dist.barrier()

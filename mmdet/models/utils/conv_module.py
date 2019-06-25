@@ -1,5 +1,5 @@
 import warnings
-
+import torch
 import torch.nn as nn
 from mmcv.cnn import kaiming_init, constant_init
 
@@ -11,6 +11,11 @@ conv_cfg = {
     "ConvWS": ConvWS2d,
     # TODO: octave conv
 }
+
+
+def swish(x):
+    """ Swish activation function """
+    return x * torch.sigmoid(x)
 
 
 def build_conv_layer(cfg, *args, **kwargs):
@@ -130,12 +135,14 @@ class ConvModule(nn.Module):
 
         # build activation layer
         if self.with_activatation:
-            if self.activation not in ["relu"]:
+            if self.activation not in ["relu", "swish"]:
                 raise ValueError(
                     "{} is currently not supported.".format(self.activation)
                 )
             if self.activation == "relu":
                 self.activate = nn.ReLU(inplace=inplace)
+            elif self.activation == "swish":
+                self.activate = swish
 
         # Use msra init by default
         self.init_weights()
@@ -146,7 +153,10 @@ class ConvModule(nn.Module):
 
     def init_weights(self):
         nonlinearity = "relu" if self.activation is None else self.activation
-        kaiming_init(self.conv, nonlinearity=nonlinearity)
+        if nonlinearity == "relu":
+            kaiming_init(self.conv, nonlinearity=nonlinearity)
+        else:
+            kaiming_init(self.conv)
         if self.with_norm:
             constant_init(self.norm, 1, bias=0)
 

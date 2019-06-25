@@ -29,6 +29,8 @@ class FCOSHead(nn.Module):
         regress_ranges=((-1, 64), (64, 128), (128, 256), (256, 512), (512, INF)),
         conv_cfg=None,
         norm_cfg=dict(type="GN", num_groups=32, requires_grad=True),
+        activation="relu",
+        double_head=None,
     ):
         super(FCOSHead, self).__init__()
 
@@ -41,6 +43,8 @@ class FCOSHead(nn.Module):
         self.regress_ranges = regress_ranges
         self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
+        self.activation = activation
+        self.double_head = double_head
 
         self._init_layers()
 
@@ -53,12 +57,13 @@ class FCOSHead(nn.Module):
                 ConvModule(
                     chn,
                     self.feat_channels,
-                    3,
+                    1 if self.double_head is not None else 3,
                     stride=1,
-                    padding=1,
+                    padding=0 if self.double_head is not None else 1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     bias=self.norm_cfg is None,
+                    activation=self.activation,
                 )
             )
             self.reg_convs.append(
@@ -71,13 +76,22 @@ class FCOSHead(nn.Module):
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     bias=self.norm_cfg is None,
+                    activation=self.activation,
                 )
             )
         self.fcos_cls = nn.Conv2d(
-            self.feat_channels, self.cls_out_channels, 3, padding=1
+            self.feat_channels,
+            self.cls_out_channels,
+            1 if self.double_head is not None else 3,
+            padding=0 if self.double_head is not None else 1,
         )
         self.fcos_reg = nn.Conv2d(self.feat_channels, 4, 3, padding=1)
-        self.fcos_attr = nn.Conv2d(self.feat_channels, 306, 3, padding=1)
+        self.fcos_attr = nn.Conv2d(
+            self.feat_channels,
+            306,
+            1 if self.double_head is not None else 3,
+            padding=0 if self.double_head is not None else 1,
+        )
         self.fcos_centerness = nn.Conv2d(self.feat_channels, 1, 3, padding=1)
 
         self.scales = nn.ModuleList([Scale(1.0) for _ in self.strides])
@@ -103,12 +117,14 @@ class FCOSHead(nn.Module):
             cls_feat = cls_layer(cls_feat)
         cls_score = self.fcos_cls(cls_feat)
         attr_score = self.fcos_attr(cls_feat)
-        centerness = self.fcos_centerness(cls_feat)
 
         for reg_layer in self.reg_convs:
             reg_feat = reg_layer(reg_feat)
         # scale the bbox_pred of different level
         bbox_pred = scale(self.fcos_reg(reg_feat)).exp()
+        centerness = self.fcos_centerness(
+            reg_feat if self.double_head is not None else cls_feat
+        )
         return cls_score, bbox_pred, centerness, attr_score
 
     def loss(

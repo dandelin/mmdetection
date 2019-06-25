@@ -21,7 +21,7 @@ class EfficientNetB5(nn.Module):
         self.model = EfficientNet.from_name("efficientnet-b5")
         self.min_reduction = min_reduction
         self.frozen_stages = frozen_stages
-        self._freeze_stages()
+        # self.train()
 
     @staticmethod
     def act(x):
@@ -52,7 +52,7 @@ class EfficientNetB5(nn.Module):
         return tuple(outputs)
 
     def init_weights(self, pretrained=None):
-        if isinstance(pretrained, str):
+        if isinstance(pretrained, str) or pretrained is None:
             try:
                 rank = torch.distributed.get_rank()
             except:
@@ -76,24 +76,26 @@ class EfficientNetB5(nn.Module):
         else:
             raise TypeError("pretrained must be a str or None")
 
-    def train(self, mode=True):
-        super().train(mode)
-        self._freeze_stages()
-        if mode:
-            for m in self.modules():
-                # trick: eval have effect on BatchNorm only
-                if isinstance(m, _BatchNorm):
-                    m.eval()
-
-    def _freeze_stages(self):
-        if self.frozen_stages >= 0:
-            self.model._bn0.eval()
-            for m in [self.model._conv_stem, self.model._bn0]:
-                for param in m.parameters():
-                    param.requires_grad = False
-
-        # only apply frozen_stages = 1, blocks are hard-coded
-        # NO, just try all-finetunable network
-
-        for i, m in enumerate(self.model._blocks):
-            pass
+    # def train(self, mode=True):
+    #     super().train(mode)
+    #     if mode:
+    #         for m in self.modules():
+    #             # trick: eval have effect on BatchNorm only
+    #             if isinstance(m, _BatchNorm):
+    #                 m.eval()
+    #             # shuts down all parameters, training only neck and head
+    #             for param in m.parameters():
+    #                 param.requires_grad = False
+    #
+    # def _freeze_stages(self):
+    #     if self.frozen_stages >= 0:
+    #         self.model._bn0.eval()
+    #         for m in [self.model._conv_stem, self.model._bn0]:
+    #             for param in m.parameters():
+    #                 param.requires_grad = False
+    #
+    #     # only apply frozen_stages = 1, blocks are hard-coded
+    #     # NO, just try all-finetunable network
+    #
+    #     for i, m in enumerate(self.model._blocks):
+    #         pass

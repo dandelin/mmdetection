@@ -21,7 +21,8 @@ class UnifiedDataset(CustomDataset):
         self.split = self.img_prefix
 
         annotations, image_infos, simpsons_with_prefix = dict(), dict(), dict()
-        for prefix in ["OPEN_IMAGES", "COCO", "PASCAL", "VISUAL_GENOME"]:
+        # for prefix in ["OPEN_IMAGES", "COCO", "PASCAL", "VISUAL_GENOME"]:
+        for prefix in ["VISUAL_GENOME"]:
             annotations_sqlite = SqliteDict(f"{ann_file}/{prefix}/annotations.sqlite")
             image_infos_sqlite = SqliteDict(f"{ann_file}/{prefix}/image_infos.sqlite")
             annos, infos, simpsons = dict(), dict(), dict()
@@ -93,27 +94,16 @@ class UnifiedDataset(CustomDataset):
             else:
                 raise NotImplementedError
 
-            if self.split == "train":
-                if "OPEN_IMAGES" in info["id"]:
-                    if "train" not in info["filename"]:
-                        continue
-
-            if self.split == "val":
-                if "OPEN_IMAGES" in info["id"]:
-                    if "train" in info["filename"]:
-                        continue
-                else:
-                    continue
-
-            # filter with simpsons
-            if simpsons_with_prefix[prefix][i] == 1:
-                continue
-
             img_infos.append(info)
             self.annotations[info["id"]] = annotations[prefix][i]
             self.simpsons[info["id"]] = simpsons_with_prefix[prefix][i]
 
         self.img_prefix = f"{ann_file}/"
+
+        if self.split == "train":
+            img_infos = img_infos[:-5000]
+        else:
+            img_infos = img_infos[-5000:]
 
         return img_infos
 
@@ -142,9 +132,10 @@ class UnifiedDataset(CustomDataset):
                     if attr in self.attr2label
                     and attr
                     not in [
+                        "Q146786",
                         "Q690857",
                         "Q1171248",
-                    ]  # ignore 'Occlusion' and 'Truncation'
+                    ]  # ignore 'Plural', 'Occlusion' and 'Truncation'
                 ]
             )
 

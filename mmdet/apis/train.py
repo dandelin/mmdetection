@@ -1,6 +1,7 @@
 from __future__ import division
 
 import re
+import ipdb
 from collections import OrderedDict
 
 import torch
@@ -139,6 +140,11 @@ def _dist_train(model, dataset, cfg, validate=False):
         )
     ]
     # put model on gpus
+    model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    for m in model.modules():
+        if isinstance(m, torch.nn.SyncBatchNorm):
+            m._specify_ddp_gpu_num(1)
+
     model = MMDistributedDataParallel(model.cuda())
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
