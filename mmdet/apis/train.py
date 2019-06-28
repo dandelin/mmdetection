@@ -7,6 +7,7 @@ from collections import OrderedDict
 import torch
 from mmcv.runner import Runner, DistSamplerSeedHook, obj_from_dict
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 from third_party.mmdetection.mmdet import datasets
 from third_party.mmdetection.mmdet.core import (
@@ -146,6 +147,7 @@ def _dist_train(model, dataset, cfg, validate=False):
             m._specify_ddp_gpu_num(1)
 
     model = MMDistributedDataParallel(model.cuda())
+    # model = DistributedDataParallel(model.cuda())
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
     runner = Runner(model, batch_processor, optimizer, cfg.work_dir, cfg.log_level)

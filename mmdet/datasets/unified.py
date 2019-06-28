@@ -45,21 +45,45 @@ class UnifiedDataset(CustomDataset):
         for prefix, annotation in annotations.items():
             for image_id, annos in tqdm.tqdm(annotation.items()):
                 for oid, entity_anno in annos.items():
-                    entities.append(entity_anno["entity"])
-                    nats.append(entity_anno["natural_language"])
-                    attributes += entity_anno["attributes"]
+                    if entity_anno["entity"] not in [
+                        "Q414241",  # part, 114
+                        "Q395237",  # side, 244
+                        "Q187456",  # bar, 277
+                        "Q23444",  # white, 279
+                        "Q9659",  # A, 310
+                        "Q398475",  # This, 329
+                        "Q55634432",  # surface, 337
+                        "Q241124",  # Row, 451
+                        "Q189171",  # Section, 478
+                    ]:
+                        entities.append(entity_anno["entity"])
+                        nats.append(entity_anno["natural_language"])
+                        attributes += entity_anno["attributes"]
 
         entity_counter, attribute_counter, nat_counter = (
             Counter(entities),
             Counter(attributes),
             Counter(nats),
         )
-        entities = entity_counter.most_common(
-            1991
-        )  # at least 100 examples, total #box : 13715443
-        attributes = attribute_counter.most_common(
-            306
-        )  # at least 500 examples, total #attribute : 12023600
+        entities = entity_counter.most_common(1600)
+        attributes = attribute_counter.most_common(400)
+
+        # ipdb.set_trace()
+        # nl2wb = SqliteDict(
+        #     f"{ann_file}/OPEN_IMAGES/natural_language_to_wikibase_id.sqlite"
+        # )
+        # wb2nl = dict()
+        # for k, v in nl2wb.items():
+        #     if v not in wb2nl:
+        #         wb2nl[v] = k
+        # nl_entities = list()
+        # for e in entities:
+        #     nl_entities.append((wb2nl[e[0]], e[1]))
+        # nl_attributes = list()
+        # for e in attributes:
+        #     nl_attributes.append((wb2nl[e[0]], e[1]))
+        # json.dump(nl_entities, open(f"{ann_file}/nl_entities.json", "w"), indent=2)
+        # json.dump(nl_attributes, open(f"{ann_file}/nl_attributes.json", "w"), indent=2)
 
         self.CLASSES = list([k for k, v in entities])
         self.ATTRIBUTES = list([k for k, v in attributes])
@@ -132,10 +156,10 @@ class UnifiedDataset(CustomDataset):
                     if attr in self.attr2label
                     and attr
                     not in [
-                        "Q146786",
-                        "Q690857",
-                        "Q1171248",
-                    ]  # ignore 'Plural', 'Occlusion' and 'Truncation'
+                        "Q146786",  # plural
+                        "Q690857",  # occlusion
+                        "Q1171248",  # truncation
+                    ]
                 ]
             )
 

@@ -50,6 +50,7 @@ class FCOSHead(nn.Module):
 
     def _init_layers(self):
         self.cls_convs = nn.ModuleList()
+        self.attr_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
         for i in range(self.stacked_convs):
             chn = self.in_channels if i == 0 else self.feat_channels
@@ -57,9 +58,22 @@ class FCOSHead(nn.Module):
                 ConvModule(
                     chn,
                     self.feat_channels,
-                    1 if self.double_head is not None else 3,
+                    3,
                     stride=1,
-                    padding=0 if self.double_head is not None else 1,
+                    padding=1,
+                    conv_cfg=self.conv_cfg,
+                    norm_cfg=self.norm_cfg,
+                    bias=self.norm_cfg is None,
+                    activation=self.activation,
+                )
+            )
+            self.attr_convs.append(
+                ConvModule(
+                    chn,
+                    self.feat_channels,
+                    3,
+                    stride=1,
+                    padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     bias=self.norm_cfg is None,
@@ -80,18 +94,10 @@ class FCOSHead(nn.Module):
                 )
             )
         self.fcos_cls = nn.Conv2d(
-            self.feat_channels,
-            self.cls_out_channels,
-            1 if self.double_head is not None else 3,
-            padding=0 if self.double_head is not None else 1,
+            self.feat_channels, self.cls_out_channels, 3, padding=1
         )
         self.fcos_reg = nn.Conv2d(self.feat_channels, 4, 3, padding=1)
-        self.fcos_attr = nn.Conv2d(
-            self.feat_channels,
-            306,
-            1 if self.double_head is not None else 3,
-            padding=0 if self.double_head is not None else 1,
-        )
+        self.fcos_attr = nn.Conv2d(self.feat_channels, 400, 3, padding=1)
         self.fcos_centerness = nn.Conv2d(self.feat_channels, 1, 3, padding=1)
 
         self.scales = nn.ModuleList([Scale(1.0) for _ in self.strides])
@@ -99,10 +105,14 @@ class FCOSHead(nn.Module):
     def init_weights(self):
         for m in self.cls_convs:
             normal_init(m.conv, std=0.01)
+        for m in self.attr_convs:
+            normal_init(m.conv, std=0.01)
         for m in self.reg_convs:
             normal_init(m.conv, std=0.01)
         bias_cls = bias_init_with_prob(0.01)
+        bias_attr = bias_init_with_prob(0.01)
         normal_init(self.fcos_cls, std=0.01, bias=bias_cls)
+        normal_init(self.fcos_attr, std=0.01, bias=bias_attr)
         normal_init(self.fcos_reg, std=0.01)
         normal_init(self.fcos_centerness, std=0.01)
 
@@ -111,12 +121,16 @@ class FCOSHead(nn.Module):
 
     def forward_single(self, x, scale):
         cls_feat = x
+        attr_feat = x
         reg_feat = x
 
         for cls_layer in self.cls_convs:
             cls_feat = cls_layer(cls_feat)
         cls_score = self.fcos_cls(cls_feat)
-        attr_score = self.fcos_attr(cls_feat)
+
+        for attr_layer in self.attr_convs:
+            attr_feat = attr_layer(attr_feat)
+        attr_score = self.fcos_attr(attr_feat)
 
         for reg_layer in self.reg_convs:
             reg_feat = reg_layer(reg_feat)
@@ -164,7 +178,7 @@ class FCOSHead(nn.Module):
             centerness.permute(0, 2, 3, 1).reshape(-1) for centerness in centernesses
         ]
         flatten_attr_scores = [
-            attr_score.permute(0, 2, 3, 1).reshape(-1, 306)
+            attr_score.permute(0, 2, 3, 1).reshape(-1, 400)
             for attr_score in attr_scores
         ]
         flatten_cls_scores = torch.cat(flatten_cls_scores)
@@ -214,19 +228,9 @@ class FCOSHead(nn.Module):
                 pos_centerness, pos_centerness_targets, reduction="mean"
             )[None]
             # train those have at least one attribute
-            valid_attr_idx = pos_attr_targets.sum(dim=1) != 0
             loss_attr = F.binary_cross_entropy_with_logits(
-                pos_attr_pred[valid_attr_idx],
-                pos_attr_targets[valid_attr_idx],
-                reduction="mean",
+                pos_attr_pred, pos_attr_targets, reduction="mean"
             )[None]
-            if torch.isnan(loss_attr):
-                loss_attr = (
-                    F.binary_cross_entropy_with_logits(
-                        pos_attr_pred, pos_attr_targets, reduction="mean"
-                    )[None]
-                    * 0
-                )
         else:
             loss_reg = pos_bbox_preds.sum()[None]
             loss_centerness = pos_centerness.sum()[None]
@@ -309,7 +313,7 @@ class FCOSHead(nn.Module):
                 cls_score.permute(1, 2, 0).reshape(-1, self.cls_out_channels).sigmoid()
             )
             centerness = centerness.permute(1, 2, 0).reshape(-1).sigmoid()
-            attrs = attr_score.permute(1, 2, 0).reshape(-1, 306).sigmoid()
+            attrs = attr_score.permute(1, 2, 0).reshape(-1, 400).sigmoid()
 
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             nms_pre = cfg.get("nms_pre", -1)

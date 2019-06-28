@@ -84,8 +84,8 @@ class EfficientNetB5(nn.Module):
     #             if isinstance(m, _BatchNorm):
     #                 m.eval()
     #             # shuts down all parameters, training only neck and head
-    #             for param in m.parameters():
-    #                 param.requires_grad = False
+    #             # for param in m.parameters():
+    #             #     param.requires_grad = False
     #
     # def _freeze_stages(self):
     #     if self.frozen_stages >= 0:

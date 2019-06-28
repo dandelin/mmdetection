@@ -44,10 +44,10 @@ class UnifiedDebugDataset(CustomDataset):
             Counter(nats),
         )
         entities = entity_counter.most_common(
-            1991
+            1024
         )  # at least 100 examples, total #box : 13715443
         attributes = attribute_counter.most_common(
-            306
+            32
         )  # at least 500 examples, total #attribute : 12023600
 
         self.CLASSES = list([k for k, v in entities])

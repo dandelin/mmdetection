@@ -3,6 +3,7 @@ from __future__ import division
 import math
 import torch
 import numpy as np
+import random
 
 from torch.distributed import get_world_size, get_rank
 from torch.utils.data import Sampler
@@ -18,7 +19,7 @@ class DistributedSampler(_DistributedSampler):
         # deterministically shuffle based on epoch
         if self.shuffle:
             g = torch.Generator()
-            g.manual_seed(self.epoch)
+            g.manual_seed(self.epoch % 20)
             indices = torch.randperm(len(self.dataset), generator=g).tolist()
         else:
             indices = torch.arange(len(self.dataset)).tolist()

@@ -80,7 +80,7 @@ def multiclass_nms(
         bboxes = multi_bboxes.new_zeros((0, 5))
         labels = multi_bboxes.new_zeros((0,), dtype=torch.long)
         if multi_attrs is not None:
-            attrs = multi_bboxes.new_zeros((0, 306))
+            attrs = multi_bboxes.new_zeros((0, 400))
 
     if multi_attrs is not None:
         return bboxes, labels, attrs
