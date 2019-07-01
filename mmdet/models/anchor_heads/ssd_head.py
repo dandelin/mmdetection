@@ -3,13 +3,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import xavier_init
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import (
-    AnchorGenerator,
-    anchor_target,
-    weighted_smoothl1,
-    multi_apply,
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
 )
+from mmdet.core import AnchorGenerator, anchor_target, weighted_smoothl1, multi_apply
 from .anchor_head import AnchorHead
 from ..registry import HEADS
 

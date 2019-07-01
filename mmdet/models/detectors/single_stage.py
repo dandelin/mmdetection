@@ -3,7 +3,16 @@ import torch.nn as nn
 from .base import BaseDetector
 from .. import builder
 from ..registry import DETECTORS
-from third_party.mmdetection.mmdet.core import bbox2result
+import sys
+import os
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import bbox2result
 
 
 @DETECTORS.register_module

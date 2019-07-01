@@ -2,8 +2,16 @@ from __future__ import division
 
 import torch
 import torch.nn as nn
+import sys
+import os
 
-from third_party.mmdetection.mmdet import ops
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet import ops
 from ..registry import ROI_EXTRACTORS
 
 

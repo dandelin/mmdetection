@@ -1,5 +1,14 @@
 import torch.nn as nn
-from third_party.mmdetection.mmdet.core import (
+import sys
+import os
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import (
     weighted_cross_entropy,
     weighted_binary_cross_entropy,
     mask_cross_entropy,

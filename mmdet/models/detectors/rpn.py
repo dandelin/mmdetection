@@ -1,6 +1,14 @@
 import mmcv
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import tensor2imgs, bbox_mapping
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import tensor2imgs, bbox_mapping
 from .base import BaseDetector
 from .test_mixins import RPNTestMixin
 from .. import builder

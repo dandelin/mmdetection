@@ -8,16 +8,19 @@ import torch
 from mmcv.runner import Runner, DistSamplerSeedHook, obj_from_dict
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
+import sys
+import os
 
-from third_party.mmdetection.mmdet import datasets
-from third_party.mmdetection.mmdet.core import (
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+from mmdet import datasets
+from mmdet.core import (
     DistOptimizerHook,
     DistEvalmAPHook,
     CocoDistEvalRecallHook,
     CocoDistEvalmAPHook,
 )
-from third_party.mmdetection.mmdet.datasets import build_dataloader
-from third_party.mmdetection.mmdet.models import RPN
+from mmdet.datasets import build_dataloader
+from mmdet.models import RPN
 from .env import get_root_logger
 
 

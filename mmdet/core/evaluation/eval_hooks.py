@@ -1,6 +1,6 @@
 import os
 import os.path as osp
-
+import sys
 import mmcv
 import numpy as np
 import torch
@@ -12,7 +12,14 @@ from torch.utils.data import Dataset
 
 from .coco_utils import results2json, fast_eval_recall
 from .mean_ap import eval_map
-from third_party.mmdetection.mmdet import datasets
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet import datasets
 
 
 class DistEvalHook(Hook):

@@ -1,5 +1,6 @@
 import logging
-
+import sys
+import os
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from torch.nn.modules.batchnorm import _BatchNorm
@@ -7,7 +8,13 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from mmcv.cnn import constant_init, kaiming_init
 from mmcv.runner import load_checkpoint
 
-from third_party.mmdetection.mmdet.ops import DeformConv, ModulatedDeformConv
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.ops import DeformConv, ModulatedDeformConv
 from ..registry import BACKBONES
 from ..utils import build_conv_layer, build_norm_layer
 

@@ -1,10 +1,18 @@
 import torch.nn as nn
 from mmcv.cnn import normal_init
+import sys
+import os
 
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
 from .guided_anchor_head import GuidedAnchorHead, FeatureAdaption
 from ..registry import HEADS
 from ..utils import bias_init_with_prob, ConvModule
-from third_party.mmdetection.mmdet.ops import MaskedConv2d
+from mmdet.ops import MaskedConv2d
 
 
 @HEADS.register_module

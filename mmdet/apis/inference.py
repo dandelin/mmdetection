@@ -6,11 +6,14 @@ import numpy as np
 import torch
 from mmcv.runner import load_checkpoint
 from matplotlib import pyplot as plt
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import get_classes
-from third_party.mmdetection.mmdet.datasets import to_tensor
-from third_party.mmdetection.mmdet.datasets.transforms import ImageTransform
-from third_party.mmdetection.mmdet.models import build_detector
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+from mmdet.core import get_classes
+from mmdet.datasets import to_tensor
+from mmdet.datasets.transforms import ImageTransform
+from mmdet.models import build_detector
 
 
 def init_detector(config, checkpoint=None, device="cuda:0"):

@@ -2,9 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import normal_init
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import delta2bbox
-from third_party.mmdetection.mmdet.ops import nms
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import delta2bbox
+from mmdet.ops import nms
 from .guided_anchor_head import GuidedAnchorHead
 from ..registry import HEADS
 

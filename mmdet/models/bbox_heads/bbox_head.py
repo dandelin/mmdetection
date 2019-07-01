@@ -1,13 +1,16 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import (
-    delta2bbox,
-    multiclass_nms,
-    bbox_target,
-    accuracy,
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
 )
+from mmdet.core import delta2bbox, multiclass_nms, bbox_target, accuracy
 from ..builder import build_loss
 from ..registry import HEADS
 

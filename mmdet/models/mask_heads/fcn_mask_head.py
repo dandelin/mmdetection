@@ -7,7 +7,16 @@ import torch.nn as nn
 from ..builder import build_loss
 from ..registry import HEADS
 from ..utils import ConvModule
-from third_party.mmdetection.mmdet.core import mask_target
+import sys
+import os
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import mask_target
 
 
 @HEADS.register_module

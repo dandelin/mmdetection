@@ -1,8 +1,15 @@
 import torch
-
+import sys
+import os
 import numpy as np
 
-from third_party.mmdetection.mmdet.ops import nms
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.ops import nms
 from ..bbox import bbox_mapping_back
 
 

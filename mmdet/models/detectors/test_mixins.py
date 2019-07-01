@@ -1,4 +1,13 @@
-from third_party.mmdetection.mmdet.core import (
+import sys
+import os
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import (
     bbox2roi,
     bbox_mapping,
     merge_aug_proposals,

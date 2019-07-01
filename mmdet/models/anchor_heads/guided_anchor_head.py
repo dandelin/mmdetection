@@ -4,8 +4,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 from mmcv.cnn import normal_init
+import sys
+import os
 
-from third_party.mmdetection.mmdet.core import (
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.core import (
     AnchorGenerator,
     anchor_target,
     anchor_inside_flags,
@@ -15,7 +23,7 @@ from third_party.mmdetection.mmdet.core import (
     multi_apply,
     multiclass_nms,
 )
-from third_party.mmdetection.mmdet.ops import DeformConv, MaskedConv2d
+from mmdet.ops import DeformConv, MaskedConv2d
 from ..builder import build_loss
 from .anchor_head import AnchorHead
 from ..registry import HEADS

@@ -1,6 +1,15 @@
 import torch
+import sys
+import os
 
-from third_party.mmdetection.mmdet.ops.nms import nms_wrapper
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+
+from mmdet.ops.nms import nms_wrapper
 
 
 def multiclass_nms(

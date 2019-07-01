@@ -1,8 +1,15 @@
 import math
-
+import sys
+import os
 import torch.nn as nn
 
-from third_party.mmdetection.mmdet.ops import DeformConv, ModulatedDeformConv
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        os.pardir,
+    )
+)
+from mmdet.ops import DeformConv, ModulatedDeformConv
 from .resnet import Bottleneck as _Bottleneck
 from .resnet import ResNet
 from ..registry import BACKBONES
