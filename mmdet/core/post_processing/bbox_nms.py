@@ -1,5 +1,4 @@
 import torch
-import ipdb
 
 from third_party.mmdetection.mmdet.ops.nms import nms_wrapper
 

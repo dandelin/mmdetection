@@ -4,8 +4,8 @@ import argparse
 from mmcv import Config
 
 from third_party.mmdetection.mmdet import __version__
-from third_party.mmdetection.mmdet.datasets import get_dataset
-from third_party.mmdetection.mmdet.apis import (
+from third_party.mmdetection.mmdet import get_dataset
+from third_party.mmdetection.mmdet import (
     train_detector,
     init_dist,
     get_root_logger,

@@ -5,8 +5,24 @@ import requests
 import shutil
 import os
 import ipdb
+import sys
 from loguru import logger
 from torch.nn.modules.batchnorm import _BatchNorm
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+                    )
+                )
+            )
+        ),
+        os.pardir,
+    )
+)
 from classification.efficientnet import EfficientNet
 from ..registry import BACKBONES
 

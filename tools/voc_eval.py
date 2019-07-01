@@ -4,7 +4,7 @@ import mmcv
 import numpy as np
 
 from third_party.mmdetection.mmdet import datasets
-from third_party.mmdetection.mmdet.core import eval_map
+from third_party.mmdetection.mmdet import eval_map
 
 
 def voc_eval(result_file, dataset, iou_thr=0.5):

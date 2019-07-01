@@ -1,5 +1,4 @@
 import torch
-import ipdb
 import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import normal_init
@@ -204,11 +203,11 @@ class FCOSHead(nn.Module):
         pos_bbox_preds = flatten_bbox_preds[pos_inds]
         pos_bbox_targets = flatten_bbox_targets[pos_inds]
         pos_centerness = flatten_centerness[pos_inds]
-        pos_centerness_targets = self.centerness_target(pos_bbox_targets)
         pos_attr_pred = flatten_attr_scores[pos_inds]
         pos_attr_targets = flatten_attrs[pos_inds]
 
         if num_pos > 0:
+            pos_centerness_targets = self.centerness_target(pos_bbox_targets)
             pos_points = flatten_points[pos_inds]
             pos_decoded_bbox_preds = distance2bbox(pos_points, pos_bbox_preds)
             pos_decoded_target_preds = distance2bbox(pos_points, pos_bbox_targets)
@@ -228,13 +227,23 @@ class FCOSHead(nn.Module):
                 pos_centerness, pos_centerness_targets, reduction="mean"
             )[None]
             # train those have at least one attribute
+            valid_attr_idx = pos_attr_targets.sum(dim=1) != 0
             loss_attr = F.binary_cross_entropy_with_logits(
-                pos_attr_pred, pos_attr_targets, reduction="mean"
+                pos_attr_pred[valid_attr_idx],
+                pos_attr_targets[valid_attr_idx],
+                reduction="mean",
             )[None]
+            if torch.isnan(loss_attr):
+                loss_attr = (
+                    F.binary_cross_entropy_with_logits(
+                        pos_attr_pred, pos_attr_targets, reduction="mean"
+                    )[None]
+                    * 0
+                )
         else:
-            loss_reg = pos_bbox_preds.sum()[None]
-            loss_centerness = pos_centerness.sum()[None]
-            loss_attr = pos_attr_pred.sum()[None]
+            loss_reg = flatten_bbox_preds.sum()[None] * 0
+            loss_centerness = flatten_centerness.sum()[None] * 0
+            loss_attr = flatten_attr_scores.sum()[None] * 0
 
         return dict(
             loss_cls=loss_cls,

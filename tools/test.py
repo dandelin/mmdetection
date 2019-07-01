@@ -9,9 +9,9 @@ import torch.distributed as dist
 from mmcv.runner import load_checkpoint, get_dist_info
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 
-from third_party.mmdetection.mmdet.apis import init_dist
-from third_party.mmdetection.mmdet.core import results2json, coco_eval
-from third_party.mmdetection.mmdet.datasets import build_dataloader, get_dataset
+from third_party.mmdetection.mmdet import init_dist
+from third_party.mmdetection.mmdet import results2json, coco_eval
+from third_party.mmdetection.mmdet import build_dataloader, get_dataset
 from third_party.mmdetection.mmdet.models import build_detector
 
 

@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import mmcv
 import numpy as np
 
-from third_party.mmdetection.mmdet.core import voc_classes
+from third_party.mmdetection.mmdet import voc_classes
 
 label_ids = {name: i + 1 for i, name in enumerate(voc_classes())}
 

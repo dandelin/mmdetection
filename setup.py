@@ -48,7 +48,7 @@ def get_hash():
         sha = get_git_hash()[:7]
     elif os.path.exists(version_file):
         try:
-            from third_party.mmdetection.mmdet.version import __version__
+            from third_party.mmdetection.mmdet import __version__
 
             sha = __version__.split("+")[-1]
         except ImportError:

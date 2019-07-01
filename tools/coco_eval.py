@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from third_party.mmdetection.mmdet.core import coco_eval
+from third_party.mmdetection.mmdet import coco_eval
 
 
 def main():

@@ -95,8 +95,12 @@ class UnifiedDataset(CustomDataset):
 
         image_ids = list()
         for prefix, annotation in annotations.items():
-            for key in annotation:
-                image_ids.append((prefix, key))
+            for key in tqdm.tqdm(annotation):
+                annot = annotation[key]
+                ents = list(annot.values())
+                ents = [v["entity"] for v in ents]
+                if any([(e in self.CLASSES) for e in ents]):
+                    image_ids.append((prefix, key))
 
         self.img_ids = [i[1] for i in image_ids]
 
@@ -125,9 +129,9 @@ class UnifiedDataset(CustomDataset):
         self.img_prefix = f"{ann_file}/"
 
         if self.split == "train":
-            img_infos = img_infos[:-5000]
+            img_infos = img_infos[:-1000]
         else:
-            img_infos = img_infos[-5000:]
+            img_infos = img_infos[-1000:]
 
         return img_infos
 

@@ -1,5 +1,4 @@
 import copy
-import ipdb
 from collections import Sequence
 
 import mmcv

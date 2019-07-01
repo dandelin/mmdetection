@@ -1,14 +1,11 @@
 import warnings
 import os
-import ipdb
 
 import mmcv
 import numpy as np
-import pycocotools.mask as maskUtils
 import torch
 from mmcv.runner import load_checkpoint
 from matplotlib import pyplot as plt
-from PIL import Image
 
 from third_party.mmdetection.mmdet.core import get_classes
 from third_party.mmdetection.mmdet.datasets import to_tensor

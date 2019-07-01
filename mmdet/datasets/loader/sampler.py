@@ -19,7 +19,7 @@ class DistributedSampler(_DistributedSampler):
         # deterministically shuffle based on epoch
         if self.shuffle:
             g = torch.Generator()
-            g.manual_seed(self.epoch % 20)
+            g.manual_seed(self.epoch)
             indices = torch.randperm(len(self.dataset), generator=g).tolist()
         else:
             indices = torch.arange(len(self.dataset)).tolist()
