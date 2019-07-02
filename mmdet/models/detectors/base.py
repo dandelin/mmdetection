@@ -88,11 +88,11 @@ class BaseDetector(nn.Module):
         else:
             return self.aug_test(imgs, img_metas, **kwargs)
 
-    def forward(self, img, img_meta, return_loss=True, **kwargs):
+    def forward(self, img, img_meta, return_loss=True, features=False, **kwargs):
         if return_loss:
             return self.forward_train(img, img_meta, **kwargs)
         else:
-            return self.forward_test(img, img_meta, **kwargs)
+            return self.forward_test(img, img_meta, features=features, **kwargs)
 
     def show_result(self, data, result, img_norm_cfg, dataset=None, score_thr=0.3):
         if isinstance(result, tuple):

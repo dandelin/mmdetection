@@ -137,7 +137,7 @@ def roi2bbox(rois):
     return bbox_list
 
 
-def bbox2result(bboxes, labels, num_classes, attrs=None):
+def bbox2result(bboxes, labels, num_classes, attrs=None, feats=None):
     """Convert detection results to a list of numpy arrays.
 
     Args:
@@ -153,11 +153,35 @@ def bbox2result(bboxes, labels, num_classes, attrs=None):
     else:
         bboxes = bboxes.cpu().numpy()
         labels = labels.cpu().numpy()
-        attrs = attrs.cpu().numpy()
-        return (
-            [bboxes[labels == i, :] for i in range(num_classes - 1)],
-            [attrs[labels == i, :] for i in range(num_classes - 1)],
-        )
+        if attrs is not None:
+            attrs = attrs.cpu().numpy()
+        if feats is not None:
+            feats = {
+                "cls": feats["cls"].cpu().numpy(),
+                "reg": feats["reg"].cpu().numpy(),
+                "attr": feats["attr"].cpu().numpy(),
+            }
+
+        if attrs is not None and feats is not None:
+            return (
+                [bboxes[labels == i, :] for i in range(num_classes - 1)],
+                [attrs[labels == i, :] for i in range(num_classes - 1)],
+                [
+                    {
+                        "cls": feats["cls"][labels == i, :],
+                        "reg": feats["reg"][labels == i, :],
+                        "attr": feats["attr"][labels == i, :],
+                    }
+                    for i in range(num_classes - 1)
+                ],
+            )
+        elif attrs is not None:
+            return (
+                [bboxes[labels == i, :] for i in range(num_classes - 1)],
+                [attrs[labels == i, :] for i in range(num_classes - 1)],
+            )
+        else:
+            return [bboxes[labels == i, :] for i in range(num_classes - 1)]
 
 
 def distance2bbox(points, distance, max_shape=None):

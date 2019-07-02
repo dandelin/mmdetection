@@ -1,6 +1,7 @@
 import torch
 import sys
 import os
+import ipdb
 
 sys.path.append(
     os.path.join(
@@ -20,6 +21,7 @@ def multiclass_nms(
     max_num=-1,
     score_factors=None,
     multi_attrs=None,
+    multi_feats=None,
 ):
     """NMS for multi-class bboxes.
 
@@ -39,7 +41,7 @@ def multiclass_nms(
             are 0-based.
     """
     num_classes = multi_scores.shape[1]
-    bboxes, labels, attrs = [], [], []
+    bboxes, labels, attrs, feats = [], [], [], []
     nms_cfg_ = nms_cfg.copy()
     nms_type = nms_cfg_.pop("type", "nms")
     nms_op = getattr(nms_wrapper, nms_type)
@@ -67,6 +69,14 @@ def multiclass_nms(
             cls_attrs = cls_attrs[_op_ind]
             attrs.append(cls_attrs)
 
+        if multi_feats is not None:
+            cls_feats = {
+                "cls": multi_feats["cls"][cls_inds, :][_op_ind],
+                "reg": multi_feats["reg"][cls_inds, :][_op_ind],
+                "attr": multi_feats["attr"][cls_inds, :][_op_ind],
+            }
+            feats.append(cls_feats)
+
         bboxes.append(cls_dets)
         labels.append(cls_labels)
 
@@ -76,6 +86,12 @@ def multiclass_nms(
 
         if multi_attrs is not None:
             attrs = torch.cat(attrs)
+        if multi_feats is not None:
+            feats = {
+                "cls": torch.cat([feat["cls"] for feat in feats]),
+                "reg": torch.cat([feat["reg"] for feat in feats]),
+                "attr": torch.cat([feat["attr"] for feat in feats]),
+            }
 
         if bboxes.shape[0] > max_num:
             _, inds = bboxes[:, -1].sort(descending=True)
@@ -84,13 +100,27 @@ def multiclass_nms(
             labels = labels[inds]
             if multi_attrs is not None:
                 attrs = attrs[inds]
+            if multi_feats is not None:
+                feats = {
+                    "cls": feats["cls"][inds],
+                    "reg": feats["reg"][inds],
+                    "attr": feats["attr"][inds],
+                }
     else:
         bboxes = multi_bboxes.new_zeros((0, 5))
         labels = multi_bboxes.new_zeros((0,), dtype=torch.long)
         if multi_attrs is not None:
             attrs = multi_bboxes.new_zeros((0, 400))
+        if multi_feats is not None:
+            feats = {
+                "cls": multi_bboxes.new_zeros((0, 256)),
+                "reg": multi_bboxes.new_zeros((0, 256)),
+                "attr": multi_bboxes.new_zeros((0, 256)),
+            }
 
-    if multi_attrs is not None:
+    if multi_attrs is not None and multi_feats is not None:
+        return bboxes, labels, attrs, feats
+    elif multi_attrs is not None:
         return bboxes, labels, attrs
     else:
         return bboxes, labels

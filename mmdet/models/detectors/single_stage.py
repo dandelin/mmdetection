@@ -5,6 +5,7 @@ from .. import builder
 from ..registry import DETECTORS
 import sys
 import os
+import ipdb
 
 sys.path.append(
     os.path.join(
@@ -73,16 +74,25 @@ class SingleStageDetector(BaseDetector):
         losses = self.bbox_head.loss(*loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         return losses
 
-    def simple_test(self, img, img_meta, rescale=False):
+    def simple_test(self, img, img_meta, rescale=False, features=False):
         x = self.extract_feat(img)
-        outs = self.bbox_head(x)
-        bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
+        outs = self.bbox_head(x, features=features)
+        if features:
+            outs, feats = outs[:-1], outs[-1]
+        else:
+            outs, feats = outs, None
+
+        bbox_inputs = outs + (img_meta, self.test_cfg, rescale, feats)
         bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
         bbox_results = [
             bbox2result(
-                det_bboxes, det_labels, self.bbox_head.num_classes, attrs=det_attrs
+                det_bboxes,
+                det_labels,
+                self.bbox_head.num_classes,
+                attrs=det_attrs,
+                feats=det_feats,
             )
-            for det_bboxes, det_labels, det_attrs in bbox_list
+            for det_bboxes, det_labels, det_attrs, det_feats in bbox_list
         ]
         return bbox_results[0]
 

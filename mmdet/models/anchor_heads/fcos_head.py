@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from mmcv.cnn import normal_init
 import sys
 import os
+import ipdb
 
 sys.path.append(
     os.path.join(
@@ -123,10 +124,10 @@ class FCOSHead(nn.Module):
         normal_init(self.fcos_reg, std=0.01)
         normal_init(self.fcos_centerness, std=0.01)
 
-    def forward(self, feats):
-        return multi_apply(self.forward_single, feats, self.scales)
+    def forward(self, feats, features=False):
+        return multi_apply(self.forward_single, feats, self.scales, features=features)
 
-    def forward_single(self, x, scale):
+    def forward_single(self, x, scale, features=False):
         cls_feat = x
         attr_feat = x
         reg_feat = x
@@ -146,7 +147,17 @@ class FCOSHead(nn.Module):
         centerness = self.fcos_centerness(
             reg_feat if self.double_head is not None else cls_feat
         )
-        return cls_score, bbox_pred, centerness, attr_score
+
+        if features:
+            return (
+                cls_score,
+                bbox_pred,
+                centerness,
+                attr_score,
+                {"cls": cls_feat, "attr": attr_feat, "reg": reg_feat},
+            )
+        else:
+            return cls_score, bbox_pred, centerness, attr_score
 
     def loss(
         self,
@@ -269,6 +280,7 @@ class FCOSHead(nn.Module):
         img_metas,
         cfg,
         rescale=None,
+        feats=None,
     ):
         assert len(cls_scores) == len(bbox_preds) == len(attr_scores)
         num_levels = len(cls_scores)
@@ -287,6 +299,18 @@ class FCOSHead(nn.Module):
             centerness_pred_list = [
                 centernesses[i][img_id].detach() for i in range(num_levels)
             ]
+            if feats is not None:
+                feats_list = [
+                    {
+                        "cls": feats[i]["cls"][img_id].detach(),
+                        "reg": feats[i]["reg"][img_id].detach(),
+                        "attr": feats[i]["attr"][img_id].detach(),
+                    }
+                    for i in range(num_levels)
+                ]
+            else:
+                feats_list = None
+
             img_shape = img_metas[img_id]["img_shape"]
             scale_factor = img_metas[img_id]["scale_factor"]
             det_bboxes = self.get_bboxes_single(
@@ -299,6 +323,7 @@ class FCOSHead(nn.Module):
                 scale_factor,
                 cfg,
                 rescale,
+                feats_list=feats_list,
             )
             result_list.append(det_bboxes)
         return result_list
@@ -314,6 +339,7 @@ class FCOSHead(nn.Module):
         scale_factor,
         cfg,
         rescale=False,
+        feats_list=None,
     ):
         assert (
             len(cls_scores) == len(bbox_preds) == len(mlvl_points) == len(attr_scores)
@@ -322,8 +348,9 @@ class FCOSHead(nn.Module):
         mlvl_scores = []
         mlvl_centerness = []
         mlvl_attrs = []
-        for cls_score, bbox_pred, centerness, attr_score, points in zip(
-            cls_scores, bbox_preds, centernesses, attr_scores, mlvl_points
+        mlvl_feats = []
+        for ii, (cls_score, bbox_pred, centerness, attr_score, points) in enumerate(
+            zip(cls_scores, bbox_preds, centernesses, attr_scores, mlvl_points)
         ):
             assert cls_score.size()[-2:] == bbox_pred.size()[-2:]
             scores = (
@@ -331,6 +358,21 @@ class FCOSHead(nn.Module):
             )
             centerness = centerness.permute(1, 2, 0).reshape(-1).sigmoid()
             attrs = attr_score.permute(1, 2, 0).reshape(-1, 400).sigmoid()
+            if feats_list is not None:
+                feats_list_single_level = feats_list[ii]
+                feats_list_single_level = {
+                    "cls": feats_list_single_level["cls"]
+                    .permute(1, 2, 0)
+                    .reshape(-1, 256),
+                    "reg": feats_list_single_level["reg"]
+                    .permute(1, 2, 0)
+                    .reshape(-1, 256),
+                    "attr": feats_list_single_level["attr"]
+                    .permute(1, 2, 0)
+                    .reshape(-1, 256),
+                }
+            else:
+                feats_list_single_level = None
 
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             nms_pre = cfg.get("nms_pre", -1)
@@ -342,11 +384,18 @@ class FCOSHead(nn.Module):
                 scores = scores[topk_inds, :]
                 centerness = centerness[topk_inds]
                 attrs = attrs[topk_inds, :]
+                if feats_list_single_level is not None:
+                    feats_list_single_level = {
+                        "cls": feats_list_single_level["cls"][topk_inds, :],
+                        "reg": feats_list_single_level["reg"][topk_inds, :],
+                        "attr": feats_list_single_level["attr"][topk_inds, :],
+                    }
             bboxes = distance2bbox(points, bbox_pred, max_shape=img_shape)
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
             mlvl_centerness.append(centerness)
             mlvl_attrs.append(attrs)
+            mlvl_feats.append(feats_list_single_level)
 
         mlvl_bboxes = torch.cat(mlvl_bboxes)
         if rescale:
@@ -356,7 +405,15 @@ class FCOSHead(nn.Module):
         mlvl_scores = torch.cat([padding, mlvl_scores], dim=1)
         mlvl_centerness = torch.cat(mlvl_centerness)
         mlvl_attrs = torch.cat(mlvl_attrs)
-        det_bboxes, det_labels, det_attrs = multiclass_nms(
+
+        if mlvl_feats[0] is not None:
+            mlvl_feats = {
+                "cls": torch.cat([mlvl_feat["cls"] for mlvl_feat in mlvl_feats]),
+                "reg": torch.cat([mlvl_feat["reg"] for mlvl_feat in mlvl_feats]),
+                "attr": torch.cat([mlvl_feat["attr"] for mlvl_feat in mlvl_feats]),
+            }
+
+        det_bboxes, det_labels, det_attrs, det_feats = multiclass_nms(
             mlvl_bboxes,
             mlvl_scores,
             cfg.score_thr,
@@ -364,8 +421,9 @@ class FCOSHead(nn.Module):
             cfg.max_per_img,
             score_factors=mlvl_centerness,
             multi_attrs=mlvl_attrs,
+            multi_feats=mlvl_feats,
         )
-        return det_bboxes, det_labels, det_attrs
+        return det_bboxes, det_labels, det_attrs, det_feats
 
     def get_points(self, featmap_sizes, dtype, device):
         """Get points according to feature map sizes.
