@@ -1,6 +1,7 @@
 import warnings
 import os
 import ipdb
+from skimage.transform import resize
 
 import mmcv
 import numpy as np
@@ -116,7 +117,13 @@ def _inference_generator(model, imgs, img_transform, device):
 
 # TODO: merge this method with the one in BaseDetector
 def show_result(
-    img_path, result, class_names, attr_names, score_thr=0.3, out_file=None
+    img_path,
+    result,
+    class_names,
+    attr_names,
+    score_thr=0.3,
+    out_file=None,
+    detailed=False,
 ):
     """Visualize the detection results on the image.
 
@@ -140,6 +147,19 @@ def show_result(
         np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(attr_result)
     ]
     labels = np.concatenate(labels)
+
+    detailed_visualization(
+        img.copy(),
+        bboxes,
+        labels,
+        attrs,
+        class_names=class_names,
+        attr_names=attr_names,
+        score_thr=score_thr,
+        show=out_file is None,
+        out_file=out_file,
+        img_path=img_path,
+    )
     visualize(
         img.copy(),
         bboxes,
@@ -209,8 +229,72 @@ def visualize(
     if out_file is None:
         os.makedirs(f"visualizations", exist_ok=True)
         plt.savefig(
-            f"visualizations/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.png", dpi=720
+            f"visualizations/full_{img_path.split('/')[-1]}_bbox_{len(bboxes)}.full.png",
+            dpi=720,
         )
     else:
-        plt.savefig(out_file, dpi=720)
+        plt.savefig(f"{out_file}.full.png", dpi=720)
+    plt.close(fig)
+
+
+def detailed_visualization(
+    img,
+    bboxes,
+    labels,
+    attrs,
+    class_names=None,
+    attr_names=None,
+    score_thr=0,
+    bbox_color="green",
+    text_color="green",
+    thickness=1,
+    font_scale=0.5,
+    show=True,
+    win_name="",
+    wait_time=0,
+    out_file=None,
+    img_path="",
+):
+
+    fig = plt.figure(figsize=(10, 100))
+
+    if score_thr > 0:
+        assert bboxes.shape[1] == 5
+        scores = bboxes[:, -1]
+        inds = scores > score_thr
+        bboxes = bboxes[inds, :]
+        labels = labels[inds]
+        attrs = attrs[inds, :]
+        scores = scores[inds]
+
+    ax = fig.add_subplot(len(bboxes) + 1, 1, 1)
+    # ax.imshow(resize(img[:, :, [2, 1, 0]], (224, 224), anti_aliasing=True))
+    ax.imshow(img[:, :, [2, 1, 0]])
+
+    for i, (bbox, label, attr, score) in enumerate(zip(bboxes, labels, attrs, scores)):
+        ax = fig.add_subplot(len(bboxes) + 1, 1, i + 2)
+        bbox_int = bbox.astype(np.int32)
+        x, y, w, h = (
+            bbox_int[0],
+            bbox_int[1],
+            bbox_int[2] - bbox_int[0],
+            bbox_int[3] - bbox_int[1],
+        )
+        cropped = img[y : y + h, x : x + w, [2, 1, 0]]
+        # ax.imshow(resize(cropped, (224, 224), anti_aliasing=True))
+        ax.imshow(cropped)
+
+        desc = f'[{score:.2f} {class_names[label]}] ({" ".join([attr_names[i] for i, sc in enumerate(attr) if sc > 0.5])})'
+        bbox_style = {"facecolor": "white", "alpha": 0.5, "pad": 0}
+        ax.text(0, 0, desc, style="italic", bbox=bbox_style, fontsize=12)
+
+    plt.tight_layout()
+    # plt.autoscale()
+    if out_file is None:
+        os.makedirs(f"visualizations", exist_ok=True)
+        plt.savefig(
+            f"visualizations/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.part.png"
+        )
+    else:
+        plt.savefig(f"{out_file}.part.png")
     plt.close(fig)
