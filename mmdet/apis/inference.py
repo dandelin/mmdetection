@@ -229,7 +229,7 @@ def visualize(
     if out_file is None:
         os.makedirs(f"visualizations", exist_ok=True)
         plt.savefig(
-            f"visualizations/full_{img_path.split('/')[-1]}_bbox_{len(bboxes)}.full.png",
+            f"visualizations/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.full.png",
             dpi=720,
         )
     else:

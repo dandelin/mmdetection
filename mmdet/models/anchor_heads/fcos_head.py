@@ -412,8 +412,10 @@ class FCOSHead(nn.Module):
                 "reg": torch.cat([mlvl_feat["reg"] for mlvl_feat in mlvl_feats]),
                 "attr": torch.cat([mlvl_feat["attr"] for mlvl_feat in mlvl_feats]),
             }
+        else:
+            mlvl_feats = None
 
-        det_bboxes, det_labels, det_attrs, det_feats = multiclass_nms(
+        res = multiclass_nms(
             mlvl_bboxes,
             mlvl_scores,
             cfg.score_thr,
@@ -423,6 +425,13 @@ class FCOSHead(nn.Module):
             multi_attrs=mlvl_attrs,
             multi_feats=mlvl_feats,
         )
+
+        if mlvl_feats is None:
+            det_bboxes, det_labels, det_attrs = res
+            det_feats = None
+        else:
+            det_bboxes, det_labels, det_attrs, det_feats = res
+
         return det_bboxes, det_labels, det_attrs, det_feats
 
     def get_points(self, featmap_sizes, dtype, device):
