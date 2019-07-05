@@ -124,6 +124,7 @@ def show_result(
     score_thr=0.3,
     out_file=None,
     detailed=False,
+    interested=[],
 ):
     """Visualize the detection results on the image.
 
@@ -148,18 +149,20 @@ def show_result(
     ]
     labels = np.concatenate(labels)
 
-    detailed_visualization(
-        img.copy(),
-        bboxes,
-        labels,
-        attrs,
-        class_names=class_names,
-        attr_names=attr_names,
-        score_thr=score_thr,
-        show=out_file is None,
-        out_file=out_file,
-        img_path=img_path,
-    )
+    if detailed:
+        detailed_visualization(
+            img.copy(),
+            bboxes,
+            labels,
+            attrs,
+            class_names=class_names,
+            attr_names=attr_names,
+            score_thr=score_thr,
+            show=out_file is None,
+            out_file=out_file,
+            img_path=img_path,
+            interested=interested,
+        )
     visualize(
         img.copy(),
         bboxes,
@@ -171,6 +174,7 @@ def show_result(
         show=out_file is None,
         out_file=out_file,
         img_path=img_path,
+        interested=interested,
     )
 
 
@@ -191,6 +195,7 @@ def visualize(
     wait_time=0,
     out_file=None,
     img_path="",
+    interested=[],
 ):
 
     fig = plt.figure(dpi=300)
@@ -207,6 +212,9 @@ def visualize(
         scores = scores[inds]
 
     for bbox, label, attr, score in zip(bboxes, labels, attrs, scores):
+        if len(interested) != 0:
+            if class_names[label] not in interested:
+                continue
         bbox_int = bbox.astype(np.int32)
         x, y, w, h = (
             bbox_int[0],
@@ -223,13 +231,14 @@ def visualize(
         desc = f'[{score:.2f} {class_names[label]}] ({" ".join([attr_names[i] for i, sc in enumerate(attr) if sc > 0.5])})'
 
         bbox_style = {"facecolor": "white", "alpha": 0.5, "pad": 0}
-        ax.text(x, y, desc, style="italic", bbox=bbox_style, fontsize=4)
+        if len(interested) == 0:
+            ax.text(x, y, desc, style="italic", bbox=bbox_style, fontsize=4)
 
     plt.autoscale()
     if out_file is None:
-        os.makedirs(f"visualizations", exist_ok=True)
+        os.makedirs(f"visualizations/out", exist_ok=True)
         plt.savefig(
-            f"visualizations/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.full.png",
+            f"visualizations/out/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.full.png",
             dpi=720,
         )
     else:
@@ -254,6 +263,7 @@ def detailed_visualization(
     wait_time=0,
     out_file=None,
     img_path="",
+    interested=[],
 ):
 
     fig = plt.figure(figsize=(10, 100))
@@ -272,6 +282,9 @@ def detailed_visualization(
     ax.imshow(img[:, :, [2, 1, 0]])
 
     for i, (bbox, label, attr, score) in enumerate(zip(bboxes, labels, attrs, scores)):
+        if len(interested) != 0:
+            if class_names[label] not in interested:
+                continue
         ax = fig.add_subplot(len(bboxes) + 1, 1, i + 2)
         bbox_int = bbox.astype(np.int32)
         x, y, w, h = (
@@ -291,9 +304,9 @@ def detailed_visualization(
     plt.tight_layout()
     # plt.autoscale()
     if out_file is None:
-        os.makedirs(f"visualizations", exist_ok=True)
+        os.makedirs(f"visualizations/out", exist_ok=True)
         plt.savefig(
-            f"visualizations/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.part.png"
+            f"visualizations/out/{img_path.split('/')[-1]}_bbox_{len(bboxes)}.part.png"
         )
     else:
         plt.savefig(f"{out_file}.part.png")
