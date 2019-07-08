@@ -128,11 +128,14 @@ class FCOSHead(nn.Module):
         return multi_apply(self.forward_single, feats, self.scales, features=features)
 
     def forward_single(self, x, scale, features=False):
+        orig_feat = x
         cls_feat = x
         attr_feat = x
         reg_feat = x
 
-        for cls_layer in self.cls_convs:
+        for i, cls_layer in enumerate(self.cls_convs):
+            if i == 3:
+                orig_feat = cls_feat
             cls_feat = cls_layer(cls_feat)
         cls_score = self.fcos_cls(cls_feat)
 
@@ -149,13 +152,7 @@ class FCOSHead(nn.Module):
         )
 
         if features:
-            return (
-                cls_score,
-                bbox_pred,
-                centerness,
-                attr_score,
-                {"cls": cls_feat, "attr": attr_feat, "reg": reg_feat},
-            )
+            return (cls_score, bbox_pred, centerness, attr_score, orig_feat)
         else:
             return cls_score, bbox_pred, centerness, attr_score
 
@@ -300,14 +297,15 @@ class FCOSHead(nn.Module):
                 centernesses[i][img_id].detach() for i in range(num_levels)
             ]
             if feats is not None:
-                feats_list = [
-                    {
-                        "cls": feats[i]["cls"][img_id].detach(),
-                        "reg": feats[i]["reg"][img_id].detach(),
-                        "attr": feats[i]["attr"][img_id].detach(),
-                    }
-                    for i in range(num_levels)
-                ]
+                # feats_list = [
+                #     {
+                #         "cls": feats[i]["cls"][img_id].detach(),
+                #         "reg": feats[i]["reg"][img_id].detach(),
+                #         "attr": feats[i]["attr"][img_id].detach(),
+                #     }
+                #     for i in range(num_levels)
+                # ]
+                feats_list = [feats[i][img_id].detach() for i in range(num_levels)]
             else:
                 feats_list = None
 
@@ -360,17 +358,20 @@ class FCOSHead(nn.Module):
             attrs = attr_score.permute(1, 2, 0).reshape(-1, 400).sigmoid()
             if feats_list is not None:
                 feats_list_single_level = feats_list[ii]
-                feats_list_single_level = {
-                    "cls": feats_list_single_level["cls"]
-                    .permute(1, 2, 0)
-                    .reshape(-1, 256),
-                    "reg": feats_list_single_level["reg"]
-                    .permute(1, 2, 0)
-                    .reshape(-1, 256),
-                    "attr": feats_list_single_level["attr"]
-                    .permute(1, 2, 0)
-                    .reshape(-1, 256),
-                }
+                # feats_list_single_level = {
+                #     "cls": feats_list_single_level["cls"]
+                #     .permute(1, 2, 0)
+                #     .reshape(-1, 256),
+                #     "reg": feats_list_single_level["reg"]
+                #     .permute(1, 2, 0)
+                #     .reshape(-1, 256),
+                #     "attr": feats_list_single_level["attr"]
+                #     .permute(1, 2, 0)
+                #     .reshape(-1, 256),
+                # }
+                feats_list_single_level = feats_list_single_level.permute(
+                    1, 2, 0
+                ).reshape(-1, 256)
             else:
                 feats_list_single_level = None
 
@@ -385,11 +386,12 @@ class FCOSHead(nn.Module):
                 centerness = centerness[topk_inds]
                 attrs = attrs[topk_inds, :]
                 if feats_list_single_level is not None:
-                    feats_list_single_level = {
-                        "cls": feats_list_single_level["cls"][topk_inds, :],
-                        "reg": feats_list_single_level["reg"][topk_inds, :],
-                        "attr": feats_list_single_level["attr"][topk_inds, :],
-                    }
+                    # feats_list_single_level = {
+                    #     "cls": feats_list_single_level["cls"][topk_inds, :],
+                    #     "reg": feats_list_single_level["reg"][topk_inds, :],
+                    #     "attr": feats_list_single_level["attr"][topk_inds, :],
+                    # }
+                    feats_list_single_level = feats_list_single_level[topk_inds, :]
             bboxes = distance2bbox(points, bbox_pred, max_shape=img_shape)
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
@@ -407,11 +409,12 @@ class FCOSHead(nn.Module):
         mlvl_attrs = torch.cat(mlvl_attrs)
 
         if mlvl_feats[0] is not None:
-            mlvl_feats = {
-                "cls": torch.cat([mlvl_feat["cls"] for mlvl_feat in mlvl_feats]),
-                "reg": torch.cat([mlvl_feat["reg"] for mlvl_feat in mlvl_feats]),
-                "attr": torch.cat([mlvl_feat["attr"] for mlvl_feat in mlvl_feats]),
-            }
+            # mlvl_feats = {
+            #     "cls": torch.cat([mlvl_feat["cls"] for mlvl_feat in mlvl_feats]),
+            #     "reg": torch.cat([mlvl_feat["reg"] for mlvl_feat in mlvl_feats]),
+            #     "attr": torch.cat([mlvl_feat["attr"] for mlvl_feat in mlvl_feats]),
+            # }
+            mlvl_feats = torch.cat(mlvl_feats)
         else:
             mlvl_feats = None
 

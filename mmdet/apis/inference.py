@@ -2,6 +2,8 @@ import warnings
 import os
 import ipdb
 from skimage.transform import resize
+from tensorboardX import SummaryWriter
+import torch.nn.functional as F
 
 import mmcv
 import numpy as np
@@ -158,7 +160,6 @@ def show_result(
             class_names=class_names,
             attr_names=attr_names,
             score_thr=score_thr,
-            show=out_file is None,
             out_file=out_file,
             img_path=img_path,
             interested=interested,
@@ -171,7 +172,6 @@ def show_result(
         class_names=class_names,
         attr_names=attr_names,
         score_thr=score_thr,
-        show=out_file is None,
         out_file=out_file,
         img_path=img_path,
         interested=interested,
@@ -186,13 +186,6 @@ def visualize(
     class_names=None,
     attr_names=None,
     score_thr=0,
-    bbox_color="green",
-    text_color="green",
-    thickness=1,
-    font_scale=0.5,
-    show=True,
-    win_name="",
-    wait_time=0,
     out_file=None,
     img_path="",
     interested=[],
@@ -254,13 +247,6 @@ def detailed_visualization(
     class_names=None,
     attr_names=None,
     score_thr=0,
-    bbox_color="green",
-    text_color="green",
-    thickness=1,
-    font_scale=0.5,
-    show=True,
-    win_name="",
-    wait_time=0,
     out_file=None,
     img_path="",
     interested=[],
@@ -311,3 +297,44 @@ def detailed_visualization(
     else:
         plt.savefig(f"{out_file}.part.png")
     plt.close(fig)
+
+
+def visualize_embeddings(img_path, result, class_names, out_file=None):
+    assert isinstance(class_names, (tuple, list))
+    img = mmcv.imread(img_path)
+    bbox_result, attr_result, feat_result = result
+    bboxes = np.vstack(bbox_result)
+    attrs = np.vstack(attr_result)
+
+    # draw bounding boxes
+    labels = [
+        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(bbox_result)
+    ]
+    labels = np.concatenate(labels)
+
+    writer = SummaryWriter(f"{out_file}")
+    cropped_images, nl_labels = list(), list()
+    feats = np.vstack(feat_result)
+
+    for i, (bbox, label, attr, feat) in enumerate(zip(bboxes, labels, attrs, feats)):
+        bbox_int = bbox.astype(np.int32)
+        x, y, w, h = (
+            bbox_int[0],
+            bbox_int[1],
+            bbox_int[2] - bbox_int[0],
+            bbox_int[3] - bbox_int[1],
+        )
+        cropped = img[y : y + h, x : x + w, [2, 1, 0]]
+        cropped = torch.from_numpy(cropped).permute(2, 0, 1).float() / 255
+        cropped_images.append(F.adaptive_avg_pool2d(cropped.unsqueeze(0), 128))
+        nl_labels.append(class_names[label])
+
+    cropped = torch.cat(cropped_images)
+
+    writer.add_embedding(
+        torch.from_numpy(feats),
+        metadata=nl_labels,
+        label_img=cropped,
+        global_step=0,
+        tag=f"valid/embedding",
+    )

@@ -156,24 +156,26 @@ def bbox2result(bboxes, labels, num_classes, attrs=None, feats=None):
         if attrs is not None:
             attrs = attrs.cpu().numpy()
         if feats is not None:
-            feats = {
-                "cls": feats["cls"].cpu().numpy(),
-                "reg": feats["reg"].cpu().numpy(),
-                "attr": feats["attr"].cpu().numpy(),
-            }
+            feats = feats.cpu().numpy()
+            # feats = {
+            #     "cls": feats["cls"].cpu().numpy(),
+            #     "reg": feats["reg"].cpu().numpy(),
+            #     "attr": feats["attr"].cpu().numpy(),
+            # }
 
         if attrs is not None and feats is not None:
             return (
                 [bboxes[labels == i, :] for i in range(num_classes - 1)],
                 [attrs[labels == i, :] for i in range(num_classes - 1)],
-                [
-                    {
-                        "cls": feats["cls"][labels == i, :],
-                        "reg": feats["reg"][labels == i, :],
-                        "attr": feats["attr"][labels == i, :],
-                    }
-                    for i in range(num_classes - 1)
-                ],
+                # [
+                #     {
+                #         "cls": feats["cls"][labels == i, :],
+                #         "reg": feats["reg"][labels == i, :],
+                #         "attr": feats["attr"][labels == i, :],
+                #     }
+                #     for i in range(num_classes - 1)
+                # ],
+                [feats[labels == i, :] for i in range(num_classes - 1)],
             )
         elif attrs is not None:
             return (
