@@ -4,7 +4,7 @@ from torch.autograd import gradcheck
 import os.path as osp
 import sys
 
-sys.path.append(osp.abspath(osp.join(__file__, "../../")))
+sys.path.insert(0, osp.abspath(osp.join(__file__, "../../")))
 from roi_pool import RoIPool  # noqa: E402
 
 feat = torch.randn(4, 16, 15, 15, requires_grad=True).cuda()

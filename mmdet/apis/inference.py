@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 from mmdet.core import get_classes
 from mmdet.datasets import to_tensor
 from mmdet.datasets.transforms import ImageTransform

@@ -8,11 +8,12 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from mmcv.cnn import constant_init, kaiming_init
 from mmcv.runner import load_checkpoint
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.ops import DeformConv, ModulatedDeformConv
 from ..registry import BACKBONES

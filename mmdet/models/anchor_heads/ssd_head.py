@@ -6,11 +6,12 @@ from mmcv.cnn import xavier_init
 import sys
 import os
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.core import AnchorGenerator, anchor_target, weighted_smoothl1, multi_apply
 from .anchor_head import AnchorHead

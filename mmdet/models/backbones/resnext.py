@@ -3,11 +3,12 @@ import sys
 import os
 import torch.nn as nn
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.ops import DeformConv, ModulatedDeformConv
 from .resnet import Bottleneck as _Bottleneck

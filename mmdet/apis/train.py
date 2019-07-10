@@ -11,7 +11,7 @@ from torch.nn.parallel import DistributedDataParallel
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 from mmdet import datasets
 from mmdet.core import (
     DistOptimizerHook,

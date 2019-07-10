@@ -7,11 +7,12 @@ import sys
 import os
 import ipdb
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.core import bbox2result
 

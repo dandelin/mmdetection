@@ -13,11 +13,12 @@ from torch.utils.data import Dataset
 from .coco_utils import results2json, fast_eval_recall
 from .mean_ap import eval_map
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet import datasets
 

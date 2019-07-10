@@ -6,12 +6,12 @@ import sys
 import os
 import ipdb
 
-sys.path.append(
-    os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-        os.pardir,
+sys.path.insert(0,
+    os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     )
 )
+
 from mmdet.core import (
     sigmoid_focal_loss,
     iou_loss,

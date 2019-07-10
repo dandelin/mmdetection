@@ -3,11 +3,12 @@ import sys
 import os
 import numpy as np
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.ops import nms
 from ..bbox import bbox_mapping_back

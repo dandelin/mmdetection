@@ -7,11 +7,12 @@ from mmcv.cnn import normal_init
 import sys
 import os
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
         os.pardir,
-    )
+    ),
 )
 from mmdet.core import (
     AnchorGenerator,

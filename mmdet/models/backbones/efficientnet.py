@@ -9,7 +9,8 @@ import sys
 from loguru import logger
 from torch.nn.modules.batchnorm import _BatchNorm
 
-sys.path.append(
+sys.path.insert(
+    0,
     os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -21,7 +22,7 @@ sys.path.append(
             )
         ),
         os.pardir,
-    )
+    ),
 )
 from classification.efficientnet import EfficientNet
 from ..registry import BACKBONES
