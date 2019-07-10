@@ -147,7 +147,7 @@ def show_result(
 
     # draw bounding boxes
     labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(attr_result)
+        np.full(bbox.shape[0], i, dtype=np.int32) for i, bbox in enumerate(bbox_result)
     ]
     labels = np.concatenate(labels)
 
@@ -299,7 +299,7 @@ def detailed_visualization(
     plt.close(fig)
 
 
-def visualize_embeddings(img_path, result, class_names, out_file=None):
+def visualize_embeddings(img_path, result, class_names, feats, out_file=None):
     assert isinstance(class_names, (tuple, list))
     img = mmcv.imread(img_path)
     bbox_result, attr_result, feat_result = result
@@ -314,9 +314,8 @@ def visualize_embeddings(img_path, result, class_names, out_file=None):
 
     writer = SummaryWriter(f"{out_file}")
     cropped_images, nl_labels = list(), list()
-    feats = np.vstack(feat_result)
 
-    for i, (bbox, label, attr, feat) in enumerate(zip(bboxes, labels, attrs, feats)):
+    for i, (bbox, label, attr) in enumerate(zip(bboxes, labels, attrs)):
         bbox_int = bbox.astype(np.int32)
         x, y, w, h = (
             bbox_int[0],
@@ -332,7 +331,7 @@ def visualize_embeddings(img_path, result, class_names, out_file=None):
     cropped = torch.cat(cropped_images)
 
     writer.add_embedding(
-        torch.from_numpy(feats),
+        feats,
         metadata=nl_labels,
         label_img=cropped,
         global_step=0,
